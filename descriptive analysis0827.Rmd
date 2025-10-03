@@ -12,6 +12,15 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(fig.path = "figures/", fig.width = 8, fig.height = 5)
 ```
 
+```{r fixlib}
+
+# Rcpp is too new after renewing RStudio
+
+remove.packages("Rcpp")
+install.packages("Rcpp", version = "1.0.12")
+
+```
+
 # 1. Preparation
 
 ```{r libraries}
@@ -59,7 +68,13 @@ install.packages("ggfortify")
 install.packages("rlang")
 install.packages("patchwork")
 install.packages("segmented")
+install.packages("tidytext")
+install.packages("mgcv")
+install.packages("splines")
+install.packages("interactions")
 
+
+library(tidytext)
 library(segmented)
 library(pscl)
 library(dplyr)
@@ -106,7 +121,9 @@ library(modelsummary)
 library(ggfortify)
 library(rlang)
 library(patchwork)
-
+library(mgcv)
+library(splines)
+library(interactions)
 ```
 
 # 2. basic data cleansing
@@ -176,7 +193,8 @@ summary(adver_sum$importance_all)
 
 # 3. overall description for decision model - each legislators
 
-```{r aggregate-data}
+```{r clean-and-replace-ideology}
+
 
 # data cleansing 
 
@@ -186,27 +204,66 @@ bioguide <- read_excel(bioguide_path)
 chamber.ideology <- read_csv("/Users/kunyazhan/Desktop/data/new ideology/chamber ideology.csv")
 
 
-# 第一步：将 bioguide_id 从 bioguide 合并进 adver_sum（通过 full_name + congress）
+# 第一步：将 bioguide_id 从 bioguide 合并进 adver_sum（通过 full_name + congress） ----
 adver_sum <- adver_sum %>%
   left_join(
     bioguide %>% select(full_name, congress, bioguide_id),
     by = c("full_name", "congress")
   )
-
 legis_sum <- legis_sum %>%
   left_join(
     bioguide %>% select(full_name, congress, bioguide_id),
     by = c("full_name", "congress")
   )
 
+adver_missing <- adver_sum %>% 
+  filter(is.na(bioguide_id)) # missing
+legis_missing <- legis_sum %>% 
+  filter(is.na(bioguide_id)) # no missing
 
-# 第二步：用 bioguide_id + congress + chamber 合并 ideology 数据
+# 解决missing问题
+
+bioguide_name_map <- bioguide %>%
+  select(full_name, bioguide_id) %>%
+  distinct(full_name, .keep_all = TRUE)
+
+adver_missing_fixed <- adver_missing %>%
+  left_join(bioguide_name_map, by = "full_name", suffix = c("", ".new")) %>%
+  mutate(
+    bioguide_id = ifelse(is.na(bioguide_id), bioguide_id.new, bioguide_id)
+  ) %>%
+  select(-bioguide_id.new)
+
+
+adver_sum_fixed <- adver_sum %>%
+  left_join(adver_missing_fixed %>%
+              select(full_name, congress, bioguide_id) %>%
+              distinct(),
+            by = c("full_name", "congress"),
+            suffix = c("", "_new")) %>%
+  mutate(bioguide_id = coalesce(bioguide_id, bioguide_id_new)) %>%
+  select(-bioguide_id_new)
+
+
+adver_missing <- adver_sum_fixed %>% 
+  filter(is.na(bioguide_id))
 
 adver_sum <- adver_sum %>%
-  mutate(
-    congress = as.character(congress),
-    chamber = as.character(chamber)
-  )
+  left_join(adver_missing_fixed %>%
+              select(full_name, congress, bioguide_id) %>%
+              distinct(),
+            by = c("full_name", "congress"),
+            suffix = c("", "_new")) %>%
+  mutate(bioguide_id = coalesce(bioguide_id, bioguide_id_new)) %>%
+  select(-bioguide_id_new)
+
+adver_sum_old <- adver_sum
+adver_sum <- adver_sum_fixed
+
+
+# 第二步：用 bioguide_id + congress + chamber 合并 ideology 数据 ----
+
+# 处理chamber.ideology
 
 chamber.ideology <- chamber.ideology %>%
   mutate(
@@ -224,6 +281,14 @@ chamber.ideology <- chamber.ideology %>%
 
 
 
+
+# 匹配
+
+adver_sum <- adver_sum %>%
+  mutate(
+    congress = as.character(congress),
+    chamber = as.character(chamber)
+  )
 adver_sum <- adver_sum %>%
   left_join(
     chamber.ideology %>%
@@ -232,21 +297,12 @@ adver_sum <- adver_sum %>%
     by = c("bioguide_id", "congress", "chamber")
   )
 
-# legis
 
 legis_sum <- legis_sum %>%
   mutate(
     congress = as.character(congress),
     chamber = as.character(chamber)
   )
-
-chamber.ideology <- chamber.ideology %>%
-  mutate(
-    congress = as.character(congress),
-    chamber = as.character(chamber)
-  )
-
-
 legis_sum <- legis_sum %>%
   left_join(
     chamber.ideology %>%
@@ -254,7 +310,6 @@ legis_sum <- legis_sum %>%
       rename(ideology_new = ideology),
     by = c("bioguide_id", "congress", "chamber")
   )
-
 
 
 adver_sum <- adver_sum %>%
@@ -265,6 +320,20 @@ legis_sum <- legis_sum %>%
   mutate(ideology = ideology_new) %>%
   select(-ideology_new)
 
+# 查看缺失
+
+adver_missing <- adver_sum %>% 
+  filter(is.na(ideology))
+legis_missing <- legis_sum %>% 
+  filter(is.na(ideology))
+
+unique(adver_missing$bioguide_id)
+unique(legis_missing$bioguide_id)
+
+```
+
+
+```{r aggregate-data}
 
 
 # data aggregation
@@ -310,7 +379,7 @@ generate_decision_with_traits <- function(df, mode = "all") {
   # 合并特征信息
   traits <- df %>%
     select(full_name, congress, dataset, party, chamber, committee_el,
-           gender, age, seniority, ideology, district, state_code) %>%
+           gender, age, seniority, ideology, district, state_code, bioguide_id) %>%
     distinct()
 
   df_final <- df_clean %>%
@@ -1352,16 +1421,16 @@ plot_decision_map_by_congress(118, adver_cg_heatmap, model_type = "adver",
 
 # legis
 
-plot_decision_map_by_congress(115, legis_cg_heatmap, model_type = "adver",
+plot_decision_map_by_congress(115, legis_cg_heatmap, model_type = "legis",
                               save_path = "legis_115_map.png")
 
-plot_decision_map_by_congress(116, legis_cg_heatmap, model_type = "adver",
+plot_decision_map_by_congress(116, legis_cg_heatmap, model_type = "legis",
                               save_path = "legis_116_map.png")
 
-plot_decision_map_by_congress(117, legis_cg_heatmap, model_type = "adver",
+plot_decision_map_by_congress(117, legis_cg_heatmap, model_type = "legis",
                               save_path = "legis_117_map.png")
 
-plot_decision_map_by_congress(118, legis_cg_heatmap, model_type = "adver",
+plot_decision_map_by_congress(118, legis_cg_heatmap, model_type = "legis",
                               save_path = "legis_118_map.png")
 
 
@@ -1502,6 +1571,701 @@ print(combined_top_issues)
 
 # 4. overall description for decision mode - each issue
 
+## 4.1 analysis based on news_data
+
+```{r new-data-cleansing}
+
+news_data_path <- "/Users/kunyazhan/Desktop/American Politics/decoding us strategic competition/code/decoding code/input/115_119_news_data.csv"
+news_data <- read_csv(news_data_path)
+
+
+news_data_filtered <- news_data %>%
+  filter(congress != 119)
+
+news_data_aug <- news_data_filtered %>%
+  mutate(congress = as.integer(congress)) %>%
+  left_join(
+    adver_cg %>%
+      mutate(congress = as.integer(congress)) %>% 
+      select(bioguide_id, congress, chamber, gender, party, committee_el),
+    by = c("mid" = "bioguide_id", "congress" = "congress")
+  )
+
+news_data_filtered$congress <- as.character(news_data_filtered$congress)
+
+missing_keys <- news_data_filtered %>%
+  select(mid, congress) %>%
+  distinct() %>%
+  anti_join(adver_sum %>% select(bioguide_id, congress) %>% distinct(),
+            by = c("mid" = "bioguide_id", "congress"))
+
+news_data_clean <- news_data_aug %>%
+  filter(!is.na(chamber), !is.na(gender), !is.na(party)) 
+# already proven that these data belongs to legislators who did not continue to serve the congress
+
+```
+
+
+### 4.1.1 basic cal using original news data
+
+```{r party-issue-attention}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- news_data_clean %>%
+  group_by(congress, party, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到党派层面
+issue_counts_party <- issue_counts_mid %>%
+  group_by(congress, party, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每党 Top 5 议题
+top_issues_party <- issue_counts_party %>%
+  group_by(congress, party) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, party, desc(total_mentions))
+
+top_issues_party
+
+write.csv(top_issues_party, "top_issues_party_news.csv", row.names = FALSE)
+
+```
+
+
+```{r gender-issue-attention}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- news_data_clean %>%
+  group_by(congress, gender, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到党派层面
+issue_counts_gender <- issue_counts_mid %>%
+  group_by(congress, gender, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每党 Top 5 议题
+top_issues_gender <- issue_counts_gender %>%
+  group_by(congress, gender) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, gender, desc(total_mentions))
+
+top_issues_gender
+
+write.csv(top_issues_gender, "top_issues_gender_news.csv", row.names = FALSE)
+
+```
+
+```{r committee-issue-attention}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- news_data_clean %>%
+  group_by(congress, committee_el, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到党派层面
+issue_counts_party <- issue_counts_mid %>%
+  group_by(congress, committee_el, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每党 Top 5 议题
+top_issues_committee_el <- issue_counts_party %>%
+  group_by(congress, committee_el) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, committee_el, desc(total_mentions))
+
+top_issues_committee_el
+
+write.csv(top_issues_committee_el, "top_issues_party_committee.csv", row.names = FALSE)
+```
+
+```{r issue-changer-news}
+
+issue_trend <- news_data_clean %>%
+  group_by(congress, issue) %>%
+  summarise(news_count = n(), .groups = "drop")
+
+
+# 找出变化最剧烈的议题
+issue_trend_change <- issue_trend %>%
+  group_by(issue) %>%
+  summarize(
+    change = (news_count[congress == max(as.numeric(congress))] - news_count[congress == min(as.numeric(congress))]) /
+             news_count[congress == min(as.numeric(congress))],
+    .groups = "drop"
+  ) %>%
+  arrange(desc(abs(change)))  # 按绝对变化排序
+
+top_issues <- issue_trend_change %>% slice(1:10) %>% pull(issue)
+
+
+ggplot(issue_trend %>% filter(issue %in% top_issues),
+       aes(x = as.numeric(congress), y = news_count, color = issue)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "issue change 115–118",
+    x = "Congress",
+    y = "news number",
+    color = "issue"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Dark2") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+
+
+
+# break ----
+
+install.packages("ggbreak")
+library(ggbreak)
+
+p <- ggplot(issue_trend %>% filter(issue %in% top_issues),
+       aes(x = as.numeric(congress), y = news_count, color = issue)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  labs(
+     title = "Top Issues Trend Across Congress 115–118",
+    x = "Congress",
+    y = "news number",
+    color = "issue"
+  ) +
+  theme_minimal() + 
+  scale_color_brewer(palette = "Paired") + 
+  scale_y_break(c(400, 1250)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+ggsave("issue change most 115–118_news.png", plot = p, width = 8, height = 4, dpi = 300)
+
+
+# 画全部 ----
+
+install.packages("randomcoloR")
+library(randomcoloR)
+
+n_colors <- length(unique(issue_trend$issue)) # 获取议题数量
+colors <- distinctColorPalette(n_colors)
+
+ggplot(issue_trend, aes(x = as.numeric(congress), y = news_count, color = issue)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  labs(
+    title = "issue change per Congress",
+    x = "Congress",
+    y = "news number",
+    color = "issue"
+  ) +
+  theme_minimal() +
+  scale_color_manual(values = colors) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+p <- ggplot(issue_trend, aes(x = as.numeric(congress), y = news_count)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~issue, scales = "free_y") +
+  labs(x = "Congress", y = "news number")
+
+
+ggsave("issue change all 115–118_news.png", plot = p, width = 10, height = 8, dpi = 300)
+
+```
+
+
+```{r gender-party-issue-attention}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- news_data_clean %>%
+  group_by(congress, gender, party, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到 gender × party 层面
+issue_counts_gender_party <- issue_counts_mid %>%
+  group_by(congress, gender, party, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每个 gender × party 的 Top 5 议题
+top_issues_gender_party <- issue_counts_gender_party %>%
+  group_by(congress, gender, party) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, gender, party, desc(total_mentions))
+
+# 查看结果
+top_issues_gender_party
+
+# 导出为 CSV
+write.csv(top_issues_gender_party, "top_issues_gender_party_news.csv", row.names = FALSE)
+```
+
+
+### 4.1.2 shanon-entropy calculation
+
+```{r shanon-entropy-news}
+
+# 计算每个议员在每个 congress × issue 的出现次数
+issue_dist <- news_data_clean %>%
+  filter(!is.na(mid), !is.na(issue), !is.na(congress)) %>%
+  group_by(mid, congress, issue, gender, chamber, party) %>%
+  summarise(n = n(), .groups = "drop")
+
+# 计算每个议员在每个 congress 的总新闻数
+issue_total <- issue_dist %>%
+  group_by(mid, congress, gender, chamber, party) %>%
+  summarise(total = sum(n), .groups = "drop")
+
+# 合并并计算 p_k
+issue_prob <- issue_dist %>%
+  left_join(issue_total,
+            by = c("mid", "congress", "gender", "chamber", "party")) %>%
+  mutate(p = n / total)
+
+# 计算 Shannon entropy
+entropy_news <- issue_prob %>%
+  group_by(mid, congress, gender, chamber, party) %>%
+  summarise(
+    shannon_entropy = -sum(p * log(p)),   # 默认自然对数
+    n_issues = n_distinct(issue),
+    total_news = sum(n),
+    .groups = "drop"
+  )
+# 查看结果
+head(entropy_news)
+
+
+```
+
+
+### 4.1.3 shanon-entropy pic
+
+```{r overall-pic}
+
+# 画图 ----
+
+ggplot(entropy_news, aes(x = factor(congress), y = shannon_entropy)) +
+  geom_violin(fill = "skyblue", alpha = 0.5) +
+  geom_boxplot(width = 0.1, outlier.size = 0.5) +
+  theme_minimal() +
+  labs(x = "Congress", y = "Shannon Entropy",
+       title = "Distribution of Attention Diversity per Congress")
+
+
+entropy_summary <- entropy_news %>%
+  group_by(congress) %>%
+  summarise(mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+            median_entropy = median(shannon_entropy, na.rm = TRUE))
+p <- ggplot(entropy_summary, aes(x = congress, y = mean_entropy)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "News Average Attention Diversity by Congress")
+
+ggsave("Average Attention Diversity by Congress-news.png", plot = p, width = 8, height = 4, dpi = 300)
+
+```
+
+
+### 4.1.4 plus party+gender+chamber
+
+```{r shanon-entropy-plus}
+
+# gender
+entropy_summary_gender <- entropy_news %>%
+  group_by(congress, gender) %>%
+  summarise(
+    mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+    median_entropy = median(shannon_entropy, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+p1 <- ggplot(entropy_summary_gender, aes(x = congress, y = mean_entropy, color = gender)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "News Average Attention Diversity by Gender and Congress")
+
+
+# party
+entropy_summary_party <- entropy_news %>%
+  group_by(congress, party) %>%
+  summarise(
+    mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+    median_entropy = median(shannon_entropy, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+p2 <- ggplot(entropy_summary_party, aes(x = congress, y = mean_entropy, color = party)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "News Average Attention Diversity by Party and Congress")
+
+
+# chamber
+
+ entropy_summary_chamber <- entropy_news %>%
+  group_by(congress, chamber) %>%
+  summarise(
+    mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+    median_entropy = median(shannon_entropy, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+p3 <- ggplot(entropy_summary_chamber, aes(x = congress, y = mean_entropy, color = chamber)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "News Average Attention Diversity by Chamber and Congress")
+
+ggsave("Average Attention Diversity by Gender and Congress-news.png", plot = p1, width = 8, height = 4, dpi = 300)
+ggsave("Average Attention Diversity by Party and Congress-news.png", plot = p2, width = 8, height = 4, dpi = 300)
+ggsave("Average Attention Diversity by Chamber and Congress-news.png", plot = p3, width = 8, height = 4, dpi = 300)
+
+```
+
+
+## 4.2 bills data
+
+### 4.2.1 data cleansing
+
+```{r shanon-entropy-bills}
+
+bills_data_path <- "/Users/kunyazhan/Desktop/American Politics/decoding us strategic competition/code/decoding code/input/115-118_congress_data.csv"
+bills_data <- read_csv(bills_data_path)
+
+
+bills_data_filtered <- bills_data %>%
+  filter(congress != 119)
+
+bills_data_aug <- bills_data_filtered %>%
+  mutate(congress = as.integer(congress)) %>%
+  left_join(
+    legis_cg %>%
+      mutate(congress = as.integer(congress)) %>% 
+      select(bioguide_id, congress, chamber, gender, party, committee_el),
+    by = c("mid" = "bioguide_id", "congress" = "congress")
+  )
+
+summary(bills_data_aug)
+sum(is.na(bills_data_aug$chamber))
+
+```
+
+### 4.2.2 basic cal using original bills data
+
+```{r party-issue-attention}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- bills_data_aug %>%
+  group_by(congress, party, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到党派层面
+issue_counts_party <- issue_counts_mid %>%
+  group_by(congress, party, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每党 Top 5 议题
+top_issues_party <- issue_counts_party %>%
+  group_by(congress, party) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, party, desc(total_mentions))
+
+top_issues_party
+
+write.csv(top_issues_party, "top_issues_party_bills.csv", row.names = FALSE)
+
+```
+
+```{r gender-issue-attention-bills}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- bills_data_aug %>%
+  group_by(congress, gender, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到党派层面
+issue_counts_gender <- issue_counts_mid %>%
+  group_by(congress, gender, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每党 Top 5 议题
+top_issues_gender <- issue_counts_gender %>%
+  group_by(congress, gender) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, gender, desc(total_mentions))
+
+top_issues_gender
+
+write.csv(top_issues_gender, "top_issues_gender_bills.csv", row.names = FALSE)
+
+```
+
+```{r gender-party-issue-attention-bills}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- bills_data_aug %>%
+  group_by(congress, gender, party, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到 gender × party 层面
+issue_counts_gender_party <- issue_counts_mid %>%
+  group_by(congress, gender, party, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每个 gender × party 的 Top 5 议题
+top_issues_gender_party <- issue_counts_gender_party %>%
+  group_by(congress, gender, party) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, gender, party, desc(total_mentions))
+
+# 查看结果
+top_issues_gender_party
+
+# 导出为 CSV
+write.csv(top_issues_gender_party, "top_issues_gender_party_bills.csv", row.names = FALSE)
+```
+
+
+```{r committee-issue-attention-bills}
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- bills_data_aug %>%
+  group_by(congress, committee_el, mid, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到党派层面
+issue_counts_committee_el <- issue_counts_mid %>%
+  group_by(congress, committee_el, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每党 Top 5 议题
+top_issues_committee_el <- issue_counts_committee_el %>%
+  group_by(congress, committee_el) %>%
+  slice_max(order_by = total_mentions, n = 5, with_ties = FALSE) %>%
+  arrange(congress, committee_el, desc(total_mentions))
+
+top_issues_committee_el
+
+write.csv(top_issues_committee_el, "top_issues_party_committee_bills.csv", row.names = FALSE)
+```
+
+```{r issue-changer-bills}
+
+issue_trend <- bills_data_aug %>%
+  group_by(congress, issue) %>%
+  summarise(news_count = n(), .groups = "drop")
+
+
+# 找出变化最剧烈的议题
+issue_trend_change <- issue_trend %>%
+  group_by(issue) %>%
+  summarize(
+    change = (news_count[congress == max(as.numeric(congress))] - news_count[congress == min(as.numeric(congress))]) /
+             news_count[congress == min(as.numeric(congress))],
+    .groups = "drop"
+  ) %>%
+  arrange(desc(abs(change)))  # 按绝对变化排序
+
+top_issues <- issue_trend_change %>% slice(1:10) %>% pull(issue)
+
+
+p <- ggplot(issue_trend %>% filter(issue %in% top_issues),
+       aes(x = as.numeric(congress), y = news_count, color = issue)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Top Issues Trend Across Congress 115–118",
+    x = "Congress",
+    y = "bills number",
+    color = "issue"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Paired") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+ggsave("issue change most 115–118_bills.png", plot = p, width = 8, height = 4, dpi = 300)
+
+# break ----
+
+ggplot(issue_trend %>% filter(issue %in% top_issues),
+       aes(x = as.numeric(congress), y = news_count, color = issue)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  labs(
+     title = "issue change 115–118",
+    x = "Congress",
+    y = "news number",
+    color = "issue"
+  ) +
+  theme_minimal() + 
+  scale_color_brewer(palette = "Paired") + 
+  scale_y_break(c(400, 1250)) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+p <- ggplot(issue_trend, aes(x = as.numeric(congress), y = news_count)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~issue, scales = "free_y") +
+  labs(x = "Congress", y = "bills number")
+
+
+ggsave("issue change all 115–118_bills.png", plot = p, width = 10, height = 8, dpi = 300)
+
+
+```
+
+
+### 4.2.3 bills shanon entropy
+
+```{r shanon-entropy-bills}
+
+
+# 计算每个议员在每个 congress × issue 的出现次数
+issue_dist <- bills_data_aug %>%
+  filter(!is.na(mid), !is.na(issue), !is.na(congress)) %>%
+  group_by(mid, congress, issue, gender, chamber, party) %>%
+  summarise(n = n(), .groups = "drop")
+
+# 计算每个议员在每个 congress 的总新闻数
+issue_total <- issue_dist %>%
+  group_by(mid, congress, gender, chamber, party) %>%
+  summarise(total = sum(n), .groups = "drop")
+
+# 合并并计算 p_k
+issue_prob <- issue_dist %>%
+  left_join(issue_total,
+            by = c("mid", "congress", "gender", "chamber", "party")) %>%
+  mutate(p = n / total)
+
+# 计算 Shannon entropy
+entropy_bills <- issue_prob %>%
+  group_by(mid, congress, gender, chamber, party) %>%
+  summarise(
+    shannon_entropy = -sum(p * log(p)),   # 默认自然对数
+    n_issues = n_distinct(issue),
+    total_news = sum(n),
+    .groups = "drop"
+  )
+# 查看结果
+head(entropy_bills)
+
+```
+
+### 4.2.4 shanon-entropy bills pic
+
+```{r overall-pic-bill}
+
+# 画图 ----
+
+ggplot(entropy_bills, aes(x = factor(congress), y = shannon_entropy)) +
+  geom_violin(fill = "skyblue", alpha = 0.5) +
+  geom_boxplot(width = 0.1, outlier.size = 0.5) +
+  theme_minimal() +
+  labs(x = "Congress", y = "Shannon Entropy",
+       title = "Distribution of Attention Diversity per Congress")
+
+
+entropy_summary <- entropy_bills %>%
+  group_by(congress) %>%
+  summarise(mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+            median_entropy = median(shannon_entropy, na.rm = TRUE))
+p <- ggplot(entropy_summary, aes(x = congress, y = mean_entropy)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "Bills Average Attention Diversity by Congress")
+
+ggsave("Average Attention Diversity by Congress-bills.png", plot = p, width = 8, height = 4, dpi = 300)
+
+```
+
+
+### 4.2.5 plus party+gender+chamber
+
+```{r shanon-entropy-plus-bills}
+
+# gender
+entropy_summary_gender <- entropy_bills %>%
+  group_by(congress, gender) %>%
+  summarise(
+    mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+    median_entropy = median(shannon_entropy, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+p1 <- ggplot(entropy_summary_gender, aes(x = congress, y = mean_entropy, color = gender)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "Bills Average Attention Diversity by Gender and Congress")
+
+
+# party
+entropy_summary_party <- entropy_bills %>%
+  group_by(congress, party) %>%
+  summarise(
+    mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+    median_entropy = median(shannon_entropy, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+p2 <- ggplot(entropy_summary_party, aes(x = congress, y = mean_entropy, color = party)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "Bills Average Attention Diversity by Party and Congress")
+
+
+# chamber
+
+ entropy_summary_chamber <- entropy_bills %>%
+  group_by(congress, chamber) %>%
+  summarise(
+    mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+    median_entropy = median(shannon_entropy, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+p3 <- ggplot(entropy_summary_chamber, aes(x = congress, y = mean_entropy, color = chamber)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "Bills Average Attention Diversity by Chamber and Congress")
+
+ggsave("Average Attention Diversity by Gender and Congress-bills.png", plot = p1, width = 8, height = 4, dpi = 300)
+ggsave("Average Attention Diversity by Party and Congress-bills.png", plot = p2, width = 8, height = 4, dpi = 300)
+ggsave("Average Attention Diversity by Chamber and Congress-bills.png", plot = p3, width = 8, height = 4, dpi = 300)
+
+```
+
+
+
+## 4.3 issue analysis based on original data
+
 ```{r issue-based analysis}
 
 # 1. issue-based dataset generation
@@ -1514,7 +2278,7 @@ generate_decision_issues <- function(df, set_name = "all") {
 
   # Step 2: Group by issue-congress level and summarize
   df_clean <- df %>%
-    group_by(issue, congress, dataset) %>%  # 保留 dataset 信息
+    group_by(issue, congress, committee_el) %>%  # 保留 dataset 信息
     summarise(
       label = sum(label, na.rm = TRUE),
       pred = mean(pred, na.rm = TRUE),
@@ -1544,9 +2308,11 @@ generate_decision_issues <- function(df, set_name = "all") {
 
 # adv
 adver_tp <- generate_decision_issues(adver_sum)
+write.csv(adver_tp, "adver_tp.csv", row.names = FALSE)
 
 # legis
 legis_tp <- generate_decision_issues(legis_sum)
+write.csv(legis_tp, "legis_tp.csv", row.names = FALSE)
 
 unique(adver_tp$decision)
 unique(legis_tp$decision)
@@ -2116,7 +2882,7 @@ legis_feature_sum_congress <- legis_all %>%
 combined_df <- bind_rows(adver_feature_sum_congress, legis_feature_sum_congress)
 
 # 为每个congress分组内，给feature排序方便绘图
-library(tidytext)
+
 combined_df <- combined_df %>%
   group_by(congress, source) %>%
   mutate(feature_reorder = tidytext::reorder_within(feature, total_importance, congress)) %>%
@@ -2149,14 +2915,13 @@ ggsave("lgbm_importance_change_by_congress.png", plot = lgbm_importance_change_b
 
 # 6. key characteristic analysis (using adver_sum/ legis_sum data)
 
-## 6.1 liner model digging
+## 6.1 database construction
 
-```{r adv-digging}
-# Analyze how legislators' personal characteristics affect their decision modes 
+```{r adver_sum cleansing}
 
 # adv
 
-adver_sum <- adver_sum %>%
+adver_sum1 <- adver_sum %>%
   mutate(
     intl_percentage = ifelse(importance_all > 0, importance_intl / importance_all, NA_real_),
     dom_percentage  = ifelse(importance_all > 0, importance_dom / importance_all, NA_real_),
@@ -2174,7 +2939,7 @@ adver_sum <- adver_sum %>%
 
 
 # legis
-legis_sum <- legis_sum %>%
+legis_sum1 <- legis_sum %>%
   mutate(
     intl_percentage = ifelse(importance_all > 0, importance_intl / importance_all, NA_real_),
     dom_percentage  = ifelse(importance_all > 0, importance_dom / importance_all, NA_real_),
@@ -2191,11 +2956,21 @@ legis_sum <- legis_sum %>%
   select(-max_val, -importance_all)
 
 
-adver_sum <- adver_sum %>%
+adver_sum1 <- adver_sum1 %>%
   mutate(is.dom = ifelse(decision == "dom", 1, 0))
 
-legis_sum <- legis_sum %>%
+legis_sum1 <- legis_sum1 %>%
   mutate(is.dom = ifelse(decision == "dom", 1, 0))
+
+```
+
+
+## 6.2 adver models
+
+### 6.2.1 regressional model 
+
+```{r adv-digging}
+# Analyze how legislators' personal characteristics affect their decision modes 
 
 
 ## -----------------------------
@@ -2203,11 +2978,11 @@ legis_sum <- legis_sum %>%
 ## -----------------------------
 # control variables: congress
 
-is.factor(adver_sum$chamber)
-adver_sum$party <- as.factor(adver_sum$party)
-adver_sum$gender <- as.factor(adver_sum$gender)
-adver_sum$congress <- as.factor(adver_sum$congress)
-adver_sum$chamber <- relevel(as.factor(adver_sum$chamber), ref = "Senate")
+is.factor(adver_sum1$chamber)
+adver_sum1$party <- as.factor(adver_sum1$party)
+adver_sum1$gender <- as.factor(adver_sum1$gender)
+adver_sum1$congress <- as.factor(adver_sum1$congress)
+adver_sum1$chamber <- relevel(as.factor(adver_sum1$chamber), ref = "Senate")
 
 
 # original 
@@ -2216,20 +2991,20 @@ adver_sum_intl0 <- lm(intl_percentage ~ age +
                      party + ideology + seniority +
                      chamber + gender + 
                       as.factor(congress), 
-                    data = adver_sum)
+                    data = adver_sum1)
 
 
 adver_sum_dom0 <- lm(dom_percentage ~ age + 
                      party + ideology + seniority +
                      chamber + gender + 
                      as.factor(congress), 
-                   data = adver_sum)
+                   data = adver_sum1)
 
 adver_sum_prof0 <- lm(prof_percentage ~ age + 
                      party + ideology +
                      chamber + gender + 
                       as.factor(congress), 
-                    data = adver_sum)
+                    data = adver_sum1)
 
 # output regression summaries 
 summary(adver_sum_intl0)
@@ -2275,14 +3050,17 @@ vif(adver_sum_intl0)
 nrow(model.frame(adver_sum_prof0))  
 nrow(model.frame(adver_sum_intl0))  
 nrow(model.frame(adver_sum_dom0))  
+```
 
+### 6.2.2 ridge & lasso 
 
+```{r adver_sum ridge&lasso}
 ## -----------------------------
-## c. Ridge & lasso
+## b. Ridge & lasso
 ## -----------------------------
 
 # Step 1: Clean and filter complete data
-adver_sum_clean <- adver_sum %>%
+adver_sum_clean <- adver_sum1 %>%
   filter(
     !is.na(intl_percentage),
     !is.na(dom_percentage),
@@ -2379,16 +3157,21 @@ html_table <- coef_table %>%
 writeLines(as.character(html_table), "coef_table.html")
 ```
 
+
+## 6.2 legis model
+
+### 6.2.1 regressional model
+
 ```{r legis-digging}
 
 ## -----------------------------
 # a. regressional model
 ## -----------------------------
 
-legis_sum$party <- as.factor(legis_sum$party)
-legis_sum$gender <- as.factor(legis_sum$gender)
-legis_sum$congress <- as.factor(legis_sum$congress)
-legis_sum$chamber <- relevel(as.factor(legis_sum$chamber), ref = "Senate")
+legis_sum1$party <- as.factor(legis_sum1$party)
+legis_sum1$gender <- as.factor(legis_sum1$gender)
+legis_sum1$congress <- as.factor(legis_sum1$congress)
+legis_sum1$chamber <- relevel(as.factor(legis_sum1$chamber), ref = "Senate")
 
 
 # original 
@@ -2397,20 +3180,20 @@ legis_sum_intl0 <- lm(intl_percentage ~ age +
                      party + ideology + seniority+ 
                      chamber + gender + 
                       as.factor(congress), 
-                    data = legis_sum)
+                    data = legis_sum1)
 
 
 legis_sum_dom0 <- lm(dom_percentage ~ age + 
                      party + ideology + seniority+ 
                      chamber + gender + 
                      as.factor(congress), 
-                   data = legis_sum)
+                   data = legis_sum1)
 
 legis_sum_prof0 <- lm(prof_percentage ~ age + 
                      party + ideology + seniority+ 
                      chamber + gender + 
                       as.factor(congress), 
-                    data = legis_sum)
+                    data = legis_sum1)
 
 # output regression summaries 
 summary(legis_sum_intl0)
@@ -2438,16 +3221,16 @@ modelsummary(
 legis_sum_intl <- lm(intl_percentage ~ age + 
                       party + seniority +
                       chamber + gender 
-                    + as.factor(congress),   data = legis_sum )
+                    + as.factor(congress),   data = legis_sum1)
 
 legis_sum_dom <- lm(dom_percentage ~ age + 
                      party + 
                      chamber + gender 
-                     + as.factor(congress),   data = legis_sum )
+                     + as.factor(congress),   data = legis_sum1)
 
 legis_sum_prof <- lm(prof_percentage ~ age + 
                        chamber + ideology 
-                      + as.factor(congress),   data = legis_sum )
+                      + as.factor(congress),   data = legis_sum1)
 
 # assumption check
 qqnorm(residuals(legis_sum_intl))
@@ -2487,13 +3270,15 @@ modelsummary(
   stars = TRUE,
   statistic = "std.error"
 )
+```
 
 
+```{r legis_sum ridge&lasso}
 ## -----------------------------
 ## c. ridge & lasso 
 ## -----------------------------
 
-legis_sum_clean <- legis_sum %>%
+legis_sum_clean <- legis_sum1 %>%
   filter(
     !is.na(intl_percentage),
     !is.na(age),
@@ -2581,21 +3366,31 @@ writeLines(as.character(html_table1), "coef_table1.html")
 ```
 
 
-## 6.2 dependent variable changed into is.dom and dom percentage
+# 7. dependent variable changed into is.x and x_percentage
 
-### 6.2.1 independent variables not separated
+## 7.1 adver/legis_cg cleansing
+
 
 ```{r analysis-data-construction}
 
 
-adver_cg <- generate_decision_with_traits(adver_sum, mode = "test")
-legis_cg <- generate_decision_with_traits(legis_sum, mode = "test")
+adver_cg <- generate_decision_with_traits(adver_sum)
+legis_cg <- generate_decision_with_traits(legis_sum)
 
+
+# if y = is.dom
 adver_cg <- adver_cg %>%
   mutate(is.dom = ifelse(decision == "dom", 1, 0))
-
 legis_cg <- legis_cg %>%
   mutate(is.dom = ifelse(decision == "dom", 1, 0))
+
+# if y = is.prof
+adver_cg <- adver_cg %>%
+  mutate(is.prof = ifelse(decision == "prof", 1, 0))
+legis_cg <- legis_cg %>%
+  mutate(is.prof = ifelse(decision == "prof", 1, 0))
+
+# not applicable for intl, cuz there is no "intl" in adver
 
 
 adver_cg <- adver_cg %>% 
@@ -2604,6 +3399,15 @@ adver_cg <- adver_cg %>%
 legis_cg <- legis_cg %>% 
   mutate(is.republican = ifelse(party == "Republican", 1, 0))
 
+
+# turn categorical vector into numeric 
+adver_cg$gender_numeric <- ifelse(adver_cg$gender == "Male", 1, 0)
+legis_cg$gender_numeric <- ifelse(legis_cg$gender == "Male", 1, 0)
+
+legis_cg$chamber_numeric <- ifelse(legis_cg$chamber == "Senate", 1, 0)
+adver_cg$chamber_numeric <- ifelse(adver_cg$chamber == "Senate", 1, 0)
+
+
 # 0. variables colinearity 
 
 cor(adver_cg$age, adver_cg$seniority, use = "complete.obs")
@@ -2611,12 +3415,28 @@ cor(legis_cg$age, legis_cg$seniority, use = "complete.obs")
 
 boxplot(ideology ~ is.republican, data = adver_cg)
 boxplot(ideology ~ is.republican, data = legis_cg)
+cor.test(adver_cg$ideology, adver_cg$is.republican, method = "pearson") 
 
 boxplot(ideology ~ chamber, data = adver_cg)
 boxplot(ideology ~ chamber, data = legis_cg)
+cor.test(adver_cg$ideology, adver_cg$chamber_numeric, method = "pearson") 
+
+boxplot(ideology ~ gender, data = adver_cg)
+boxplot(ideology ~ gender, data = legis_cg)
+cor.test(adver_cg$ideology, adver_cg$gender_numeric, method = "pearson") 
 
 
+
+# is.republican vs chamber
 table(adver_cg$is.republican, adver_cg$chamber)
+chisq.test(table(adver_cg$is.republican, adver_cg$chamber))
+
+table(legis_cg$is.republican, legis_cg$chamber)
+chisq.test(table(legis_cg$is.republican, legis_cg$chamber))
+
+
+# is.republican vs gender
+table(adver_cg$is.republican, adver_cg$gender)
 chisq.test(table(adver_cg$is.republican, adver_cg$chamber))
 
 table(legis_cg$is.republican, legis_cg$chamber)
@@ -2624,7 +3444,42 @@ chisq.test(table(legis_cg$is.republican, legis_cg$chamber))
 
 ```
 
+## 7.2 residual test 
 
+```{r residual test for each model}
+
+install.packages("ResourceSelection")
+library(ResourceSelection)
+
+length(adver_cg$is.dom)
+length(fitted(adver_logit0))
+
+# lm
+
+
+
+
+# logit
+hoslem.test(model.frame(adver_logit1)$is.dom, fitted(adver_logit1))
+
+model_data <- model.frame(adver_logit1)
+
+y <- model.response(model_data)
+y <- as.numeric(as.character(y))
+
+yhat <- fitted(adver_logit1)
+length(y); length(yhat)
+
+hoslem.test(y, yhat, g = 10)
+
+
+
+
+
+```
+
+
+## 7.3 is.dom 
 
 ```{r logit-models-construction}
 
@@ -2767,7 +3622,7 @@ levels(adver_cg$is.republican)
 
 # 3. model trainning
 #adver
-adver_logit0 <- glm(is.dom ~ age + is.republican + ideology + chamber + seniority + as.factor(congress), 
+adver_logit0 <- glm(is.dom ~ age + is.republican + ideology + chamber + seniority + gender + as.factor(congress), 
                    data = adver_cg, 
                    family = binomial())
 
@@ -2788,19 +3643,23 @@ legis_logit_result <- analyze_logit_model(legis_logit0)
 adver_logit1 <- glm(is.dom ~ age +  chamber + ideology +  gender + as.factor(congress), 
                    data = adver_cg, 
                    family = binomial())
+adver_logit_result <- analyze_logit_model(adver_logit1)
 
 legis_logit1 <- glm(is.dom ~ age +  chamber +ideology +  gender+as.factor(congress),  
                    data = legis_cg, 
                    family = binomial())
+legis_logit_result <- analyze_logit_model(legis_logit1)
+
 
 adver_logit2 <- glm(is.dom ~ age +  chamber + is.republican +  gender + as.factor(congress), 
                    data = adver_cg, 
                    family = binomial())
+adver_logit_result <- analyze_logit_model(adver_logit2)
 
 legis_logit2 <- glm(is.dom ~ age +  chamber + is.republican +  gender+as.factor(congress),  
                    data = legis_cg, 
-                   family = binomial())
-
+                 family = binomial())
+legis_logit_result <- analyze_logit_model(legis_logit2)  
 
 adver_logit3 <- glm(is.dom ~ seniority +  chamber + is.republican +  gender + as.factor(congress), 
                    data = adver_cg, 
@@ -2826,9 +3685,22 @@ legis_logit4 <- glm(is.dom ~ seniority +  chamber + ideology +  gender+as.factor
 # pesudo r2
 pR2(adver_logit1)
 pR2(legis_logit1)
+pR2(adver_logit2)
+pR2(legis_logit2)
+pR2(adver_logit3)
+pR2(legis_logit3)
+pR2(adver_logit4)
+pR2(legis_logit4)
+
 
 vif(adver_logit1)
 vif(legis_logit1)
+vif(adver_logit2)
+vif(legis_logit2)
+vif(adver_logit3)
+vif(legis_logit3)
+vif(adver_logit4)
+vif(legis_logit4)
 
 
 # robust check on legis_logit
@@ -2846,7 +3718,7 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "logitmodel_adver.html",
+  output = "logitmodel_adver_isdom.html",
   escape = FALSE,
   gof_omit = "AIC|BIC"
 )
@@ -2861,14 +3733,33 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "logitmodel_legis.html",
+  output = "logitmodel_legis_isdom.html",
   escape = FALSE,
   gof_omit = "AIC|BIC"
 )
 
 
+# coefficient plot / dot-whisker plot
+
+# 整理结果
+models <- list(Age = adver_logit_age, Ideology = adver_logit_ideology, Party = adver_logit_is.republican, Gender = adver_logit_gender, Chamber = adver_logit_chamber, Seniority = adver_logit_seniority)
+tidy_models <- purrr::map_df(models, tidy, .id = "Model")
+
+# 画图
+p <- gp <- ggplot(tidy_models, aes(x = estimate, y = term, color = Model)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbarh(aes(xmin = estimate - 1.96*std.error,
+                     xmax = estimate + 1.96*std.error),
+                 height = 0.2,
+                 position = position_dodge(width = 0.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme_minimal() +
+  labs(x = "Logit Coefficient", y = "Variable", title = "Coefficient Plot for Adver Logit seperated regression") 
+
+ggsave("adver_seperated.png", plot = p, width = 8, height = 4, dpi = 300)
+
 ## -----------------------------
-# b. logit model - seperated variables
+# b. logit model - multiple variables
 ## -----------------------------
 
 # 1.1 logit model construction
@@ -2939,7 +3830,7 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "logitmodel_adver_seperated.html",
+  output = "logitmodel_adver_seperated_isdom.html",
   escape = FALSE,
   gof_omit = "AIC|BIC"
 )
@@ -2957,14 +3848,33 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "logitmodel_legis_seperated.html",
+  output = "logitmodel_legis_seperated_isdom.html",
   escape = FALSE,
   gof_omit = "AIC|BIC"
 )
 
 
+# coefficient plot / dot-whisker plot
 
-# 1.3. check 
+# 整理结果
+models <- list(Age = legis_logit_age, Ideology = legis_logit_ideology, Party = legis_logit_is.republican, Gender = legis_logit_gender, Chamber = legis_logit_chamber, Seniority = legis_logit_seniority)
+tidy_models <- purrr::map_df(models, tidy, .id = "Model")
+
+# 画图
+p <- gp <- ggplot(tidy_models, aes(x = estimate, y = term, color = Model)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbarh(aes(xmin = estimate - 1.96*std.error,
+                     xmax = estimate + 1.96*std.error),
+                 height = 0.2,
+                 position = position_dodge(width = 0.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme_minimal() +
+  labs(x = "Logit Coefficient", y = "Variable", title = "Coefficient Plot for Legis Logit seperated regression") 
+
+ggsave("legis_seperated.png", plot = p, width = 8, height = 4, dpi = 300)
+
+
+# 1.3. check ----
 
 # pesudo r2
 pR2(adver_logit_age)
@@ -2996,11 +3906,78 @@ vif(legis_logit_gender)
 vif(legis_logit_seniority)
 vif(legis_logit_chamber)
 
+# residual
+
+library(DHARMa)
+
+plot_logit_residuals <- function(model_list, data, output_dir = "logit_residual_plots", n = 1000) {
+  
+  # 如果输出文件夹不存在，就新建
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir)
+  }
+  
+  for (model_name in names(model_list)) {
+    model <- model_list[[model_name]]
+    
+    # 生成残差
+    res <- simulateResiduals(fittedModel = model, n = n)
+    
+    # 自动获取自变量（去掉因变量）
+    predictors <- all.vars(formula(model))[-1]
+    predictors <- predictors[predictors %in% colnames(data)]  # 只保留存在的列
+    
+    # 设置输出文件（一个大图）
+    png(file.path(output_dir, paste0("residuals_", model_name, "_all.png")),
+        width = 2400, height = 1600, res = 200)
+    
+    # 设置大图布局：根据变量个数自动排版（2列）
+    n_pred <- length(predictors)
+    n_row <- ceiling(n_pred / 2)
+    par(mfrow = c(n_row, 2), mar = c(4, 4, 3, 1))  # 调整边距，避免标题重叠
+    
+    # 遍历 predictor 画子图
+    for (var in predictors) {
+      plotResiduals(res, predictor = data[[var]],
+                    main = paste("Residuals vs", var, "\n(", model_name, ")"))
+    }
+    
+    dev.off()
+  }
+  
+  cat("✅ 每个模型的所有 predictor 残差图已合并保存至：", output_dir, "\n")
+}
+
+# ----------------------------
+
+# 模型列表
+model_list_adver_dom_logit <- list(
+  "adver_dom_logit1" = adver_logit1,
+  "adver_dom_logit2" = adver_logit2,
+  "adver_dom_logit3" = adver_logit3,
+  "adver_dom_logit4" = adver_logit4
+)
+
+model_list_legis_dom_logit <- list(
+  "legis_dom_logit1" = legis_logit1,
+  "legis_dom_logit2" = legis_logit2,
+  "legis_dom_logit3" = legis_logit3,
+  "legis_dom_logit4" = legis_logit4
+)
+
+# 调用函数
+plot_logit_residuals(model_list_adver_dom_logit, adver_cg)
+plot_logit_residuals(model_list_legis_dom_logit, legis_cg)
+
+
+
+
+
 
 ```
 
 
-### 6.2.3 lm modesl 
+## 7.4 dom_percentage
 
 ```{r lm-models-construction}
 
@@ -3009,7 +3986,7 @@ vif(legis_logit_chamber)
 # a. regression model - mutilple variables
 ## -----------------------------
 
-# 1. lasso/ ridge
+# 1. lasso/ ridge ----
 
 # adver
 cv_lasso_adver1 <- run_glmnet_selection(
@@ -3056,7 +4033,7 @@ cv_elnet_legis1 <- run_glmnet_selection(
 )
 
 
-# 2. model training 
+# 2. model training ----
 # original
 adver_lm0 <- lm(dom_percentage ~ age + 
                      is.republican + ideology + seniority+ 
@@ -3164,7 +4141,7 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "lmmodels_adver.html",
+  output = "lmmodels_adver_dom.html",
   escape = FALSE
 )
 
@@ -3178,7 +4155,7 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "lmmodels_legis.html",
+  output = "lmmodels_legis_dom.html",
   escape = FALSE
 )
 
@@ -3257,7 +4234,7 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "lmmodel_adver_seperated.html",
+  output = "lmmodel_adver_seperated_dom.html",
   escape = FALSE
 )
 
@@ -3273,7 +4250,7 @@ modelsummary(
   ),
   fmt = 3,
   stars = TRUE,
-  output = "lmmodel_legis_seperated.html",
+  output = "lmmodel_legis_seperated_dom.html",
   escape = FALSE
 )
 
@@ -3338,36 +4315,659 @@ plot_lm_diagnostics <- function(model_list, output_dir = "lm_diagnostics_plots")
 # 调用
 
 # 构建模型列表
-models_adver_lm <- list(
-  "age" = adver_cg_age1,
-  "ideology" = adver_cg_ideology1,
-  "is.republican" = adver_cg_is.republican1,
-  "gender" = adver_cg_gender1,
-  "chamber" = adver_cg_chamber1,
-  "seniority" = adver_cg_seniority1
+
+model_adver_lm_dom_multiple <- list(
+  "adver_dom0" = adver_lm0,
+  "adver_dom1" = adver_lm1,
+  "adver_dom2" = adver_lm2,
+  "adver_dom3" = adver_lm3,
+  "adver_dom4" = adver_lm4
 )
 
-models_legis_lm <- list(
-  "legis_age" = legis_cg_age1,
-  "legis_ideology" = legis_cg_ideology1,
-  "legis_is.republican" = legis_cg_is.republican1,
-  "legis_gender" = legis_cg_gender1,
-  "legis_chamber" = legis_cg_chamber1,
-  "legis_seniority" = legis_cg_seniority1
+models_adver_lm_dom <- list(
+  "age_dom" = adver_cg_age1,
+  "ideology_dom" = adver_cg_ideology1,
+  "is.republican_dom" = adver_cg_is.republican1,
+  "gender_dom" = adver_cg_gender1,
+  "chamber_dom" = adver_cg_chamber1,
+  "seniority_dom" = adver_cg_seniority1
+)
+
+model_legis_lm_dom_multiple <- list(
+  "legis_dom" = legis_lm0,
+  "legis_dom1" = legis_lm1,
+  "legis_dom2" = legis_lm2,
+  "legis_dom3" = legis_lm3,
+  "legis_dom4" = legis_lm4
+)
+
+models_legis_lm_dom <- list(
+  "legis_age_dom" = legis_cg_age1,
+  "legis_ideology_dom" = legis_cg_ideology1,
+  "legis_is.republican_dom" = legis_cg_is.republican1,
+  "legis_gender_dom" = legis_cg_gender1,
+  "legis_chamber_dom" = legis_cg_chamber1,
+  "legis_seniority_dom" = legis_cg_seniority1
 )
 
 
 # 运行函数
-plot_lm_diagnostics(models_adver_lm)
-plot_lm_diagnostics(models_legis_lm)
+plot_lm_diagnostics(model_adver_lm_dom_multiple)
+plot_lm_diagnostics(model_legis_lm_dom_multiple)
+plot_lm_diagnostics(models_adver_lm_dom)
+plot_lm_diagnostics(models_legis_lm_dom)
 
+```
+
+
+## 7.5 is. prof
+
+
+```{r is.prof logit model}
+
+## -----------------------------
+# a. logit model - multiple variables
+## -----------------------------
+
+# 1. ridge & lasso ----
+
+# adver
+cv_lasso_adver <- run_glmnet_selection(adver_cg, is.prof ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 1,
+  family = "binomial")
+cv_ridge_adver <- run_glmnet_selection(adver_cg, is.prof ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0,
+  family = "binomial")
+cv_elnet_adver <- run_glmnet_selection(adver_cg, is.prof ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0.5,
+  family = "binomial")
+
+# legis
+cv_lasso_legis <- run_glmnet_selection(legis_cg, is.prof ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 1,
+  family = "binomial")
+cv_ridge_legis <- run_glmnet_selection(legis_cg, is.prof ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0,
+  family = "binomial")
+cv_elnet_legis <- run_glmnet_selection(legis_cg, is.prof ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0.5,
+  family = "binomial")
+
+
+
+# 2. model training ----
+
+#adver
+adver_logit0 <- glm(is.prof ~ age + is.republican + ideology + chamber + seniority + gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+
+adver_logit_result <- analyze_logit_model(adver_logit0)
+
+
+#legis
+legis_logit0 <- glm(is.prof ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_result <- analyze_logit_model(legis_logit0)
+
+
+# ajusted
+
+adver_logit1 <- glm(is.prof ~ age +  chamber + ideology +  gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+legis_logit1 <- glm(is.prof ~ age +  chamber +ideology +  gender+as.factor(congress),  
+                   data = legis_cg, 
+                   family = binomial())
+
+adver_logit2 <- glm(is.prof ~ age +  chamber + is.republican +  gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+legis_logit2 <- glm(is.prof ~ age +  chamber + is.republican +  gender+as.factor(congress),  
+                   data = legis_cg, 
+                   family = binomial())
+
+
+adver_logit3 <- glm(is.prof ~ seniority +  chamber + is.republican +  gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+legis_logit3 <- glm(is.prof ~ seniority +  chamber + is.republican +  gender+as.factor(congress),  
+                   data = legis_cg, 
+                   family = binomial())
+
+
+adver_logit4 <- glm(is.prof ~ seniority +  chamber + ideology +  gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+legis_logit4 <- glm(is.prof ~ seniority +  chamber + ideology +  gender+as.factor(congress),  
+                   data = legis_cg, 
+                   family = binomial())
+
+
+
+# 4. check 
+
+# pesudo r2
+pR2(adver_logit1)
+pR2(legis_logit1)
+
+vif(adver_logit1)
+vif(legis_logit1)
+
+
+# robust check on legis_logit
+
+
+# 5. output
+
+modelsummary(
+  list(
+    "Adver All" = adver_logit0,
+    "1" = adver_logit1,
+    "2" = adver_logit2,
+    "3" = adver_logit3,
+    "4" = adver_logit4
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "logitmodel_adver_isprof.html",
+  escape = FALSE,
+  gof_omit = "AIC|BIC"
+)
+
+modelsummary(
+  list(
+    "Legis All" = legis_logit0,
+    "1" = legis_logit1,
+    "2" = legis_logit2,
+    "3" = legis_logit3,
+    "4" = legis_logit4
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "logitmodel_legis_isprof.html",
+  escape = FALSE,
+  gof_omit = "AIC|BIC"
+)
+
+
+## -----------------------------
+# b. logit model - seperated variables
+## -----------------------------
+
+# 1.1 logit model construction
+
+#adver
+adver_logit_age <- glm(is.prof ~ age + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+adver_logit_ideology <- glm(is.prof ~ ideology + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+adver_logit_is.republican <- glm(is.prof ~ is.republican + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+adver_logit_gender <- glm(is.prof ~ gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+adver_logit_chamber <- glm(is.prof ~ chamber + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+adver_logit_seniority <- glm(is.prof ~ seniority + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+
+#legis
+legis_logit_age <- glm(is.prof ~ age + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_ideology <- glm(is.prof ~ ideology + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_is.republican <- glm(is.prof ~ is.republican + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_gender <- glm(is.prof ~ gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_chamber <- glm(is.prof ~ chamber + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_seniority <- glm(is.prof ~ seniority + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+
+# 1.2. output
+
+# adver
+modelsummary(
+  list(
+    "1" = adver_logit_age,
+    "2" = adver_logit_ideology,
+    "3" = adver_logit_is.republican,
+    "4" = adver_logit_gender,
+    "5" = adver_logit_chamber,
+    "6" = adver_logit_seniority
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "logitmodel_adver_seperated_isprof.html",
+  escape = FALSE,
+  gof_omit = "AIC|BIC"
+)
+
+
+#legis
+modelsummary(
+  list(
+    "1" = legis_logit_age,
+    "2" = legis_logit_ideology,
+    "3" = legis_logit_is.republican,
+    "4" = legis_logit_gender,
+    "5" = legis_logit_chamber,
+    "6" = legis_logit_seniority
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "logitmodel_legis_seperated_isprof.html",
+  escape = FALSE,
+  gof_omit = "AIC|BIC"
+)
+
+
+
+# 1.3. check 
+
+# pesudo r2
+pR2(adver_logit_age)
+pR2(adver_logit_ideology)
+pR2(adver_logit_is.republican)
+pR2(adver_logit_gender)
+pR2(adver_logit_seniority)
+pR2(adver_logit_chamber)
+
+pR2(legis_logit_age)
+pR2(legis_logit_ideology)
+pR2(legis_logit_is.republican)
+pR2(legis_logit_gender)
+pR2(legis_logit_seniority)
+pR2(legis_logit_chamber)
+
+
+vif(adver_logit_age)
+vif(adver_logit_ideology)
+vif(adver_logit_is.republican)
+vif(adver_logit_gender)
+vif(adver_logit_seniority)
+vif(adver_logit_chamber)
+
+vif(legis_logit_age)
+vif(legis_logit_ideology)
+vif(legis_logit_is.republican)
+vif(legis_logit_gender)
+vif(legis_logit_seniority)
+vif(legis_logit_chamber)
+
+# residual
+
+model_list_adver_prof_logit <- list(
+  "adver_prof_logit1" = adver_logit1,
+  "adver_prof_logit2" = adver_logit2,
+  "adver_prof_logit3" = adver_logit3,
+  "adver_prof_logit4" = adver_logit4
+)
+
+model_list_legis_prof_logit <- list(
+  "legis_prof_logit1" = legis_logit1,
+  "legis_prof_logit2" = legis_logit2,
+  "legis_prof_logit3" = legis_logit3,
+  "legis_prof_logit4" = legis_logit4
+)
+
+
+plot_logit_residuals(model_list_adver_prof_logit, adver_cg)
+plot_logit_residuals(model_list_legis_prof_logit, legis_cg)
 
 
 
 ```
 
 
-### 6.2.4 plus independent variables 
+## 7.6 prof_percentage
+
+```{r prof_percentage lm model}
+
+
+## -----------------------------
+# a. regression model - mutilple variables
+## -----------------------------
+
+# 1. lasso/ ridge ----
+
+# adver
+cv_lasso_adver1 <- run_glmnet_selection(
+  data = adver_cg,
+  formula = prof_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 1,
+  family = "gaussian"  
+)
+
+cv_ridge_adver1 <- run_glmnet_selection(
+  data = adver_cg,
+  formula = prof_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 0,
+  family = "gaussian"  
+)
+
+cv_elnet_adver1 <- run_glmnet_selection(
+  data = adver_cg,
+  formula = prof_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 0.5,
+  family = "gaussian"  
+)
+
+# legis
+cv_lasso_legis1 <- run_glmnet_selection(
+  data = legis_cg,
+  formula = prof_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 1,
+  family = "gaussian"  
+)
+
+cv_ridge_legis1 <- run_glmnet_selection(
+  data = legis_cg,
+  formula = prof_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 0,
+  family = "gaussian"  
+)
+
+cv_elnet_legis1 <- run_glmnet_selection(
+  data = legis_cg,
+  formula = prof_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 0.5,
+  family = "gaussian"  
+)
+
+
+# 2. model training ----
+# original
+adver_lm0 <- lm(prof_percentage ~ age + 
+                     is.republican + ideology + seniority+ 
+                     chamber + gender + 
+                     as.factor(congress), 
+                   data = adver_cg)
+
+legis_lm0 <- lm(prof_percentage ~ age + 
+                     is.republican + ideology + seniority+ 
+                     chamber + gender + 
+                     as.factor(congress), 
+                   data = legis_cg)
+
+summary(adver_lm0)
+summary(legis_lm0)
+
+# adjusted
+
+adver_lm1 <- lm(prof_percentage ~ age + 
+                     is.republican + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+
+vif(lm(prof_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress), data = adver_cg))
+vif(lm(prof_percentage ~ age + is.republican + ideology + chamber + gender + as.factor(congress), data = adver_cg))
+vif(lm(prof_percentage ~  seniority + is.republican + ideology + chamber + gender + as.factor(congress), data = adver_cg))
+
+
+
+legis_lm1 <- lm(prof_percentage ~ age + 
+                     chamber + gender + is.republican 
+                     + as.factor(congress),   data = legis_cg )
+
+
+adver_lm2 <- lm(prof_percentage ~ age + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+
+legis_lm2 <- lm(prof_percentage ~ age + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+
+adver_lm3 <- lm(prof_percentage ~ seniority + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+
+legis_lm3 <- lm(prof_percentage ~ seniority + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+
+adver_lm4 <- lm(prof_percentage ~ seniority + 
+                     is.republican + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+
+legis_lm4 <- lm(prof_percentage ~ seniority + 
+                     is.republican + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# 3. qqplot check
+
+# check basic assumptions of linear regression
+#qqnorm(residuals(adver_cg_dom))
+#qqline(residuals(adver_cg_dom), col = "red")
+#mean(residuals(adver_cg_dom))
+#vif(adver_cg_dom)
+
+#qqnorm(residuals(legis_cg_dom))
+#qqline(residuals(legis_cg_dom), col = "red")
+#mean(residuals(legis_cg_dom))
+#vif(legis_cg_dom)
+
+
+# 4. output
+
+modelsummary(
+  list(
+    "Adver LM" = adver_lm0,
+    "1" = adver_lm1,
+    "2" = adver_lm2,
+    "3" = adver_lm3,
+    "4" = adver_lm4
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "lmmodels_adver_prof.html",
+  escape = FALSE
+)
+
+modelsummary(
+  list(
+    "Legis LM" = legis_lm0,
+    "1" = legis_lm1,
+    "2" = legis_lm2,
+    "3" = legis_lm3,
+    "4" = legis_lm4
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "lmmodels_legis_prof.html",
+  escape = FALSE
+)
+
+
+## -----------------------------
+# a. regression model - seperated variables
+## -----------------------------
+
+
+# 2.1. lm model construction
+
+# adver
+adver_cg_age1 <- lm(prof_percentage ~ age +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+adver_cg_ideology1 <- lm(prof_percentage ~ ideology +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+adver_cg_is.republican1 <- lm(prof_percentage ~ is.republican +
+                     as.factor(congress), 
+               data = adver_cg)
+
+adver_cg_chamber1 <- lm(prof_percentage ~ chamber +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+adver_cg_gender1 <- lm(prof_percentage ~ gender +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+adver_cg_seniority1 <- lm(prof_percentage ~ seniority +
+                     as.factor(congress), 
+                   data = adver_cg)
+
+
+# legis
+legis_cg_age1 <- lm(prof_percentage ~ age +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_ideology1 <- lm(prof_percentage ~ ideology +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_is.republican1 <- lm(prof_percentage ~ is.republican +
+                     as.factor(congress), 
+               data = legis_cg)
+
+legis_cg_chamber1 <- lm(prof_percentage ~ chamber +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_gender1 <- lm(prof_percentage ~ gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_seniority1 <- lm(prof_percentage ~ seniority +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+
+
+# 2.2. output
+
+# adver
+modelsummary(
+  list(
+    "1" = adver_cg_age1,
+    "2" = adver_cg_ideology1,
+    "3" = adver_cg_is.republican1,
+    "4" = adver_cg_gender1,
+    "5" = adver_cg_chamber1,
+    "6" = adver_cg_seniority1
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "lmmodel_adver_seperated_prof.html",
+  escape = FALSE
+)
+
+# legis
+modelsummary(
+  list(
+    "1" = legis_cg_age1,
+    "2" = legis_cg_ideology1,
+    "3" = legis_cg_is.republican1,
+    "4" = legis_cg_gender1,
+    "5" = legis_cg_chamber1,
+    "6" = legis_cg_seniority1
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "lmmodel_legis_seperated_prof.html",
+  escape = FALSE
+)
+
+
+# 2.3. robust check
+
+# 构建模型列表
+
+model_adver_lm_prof_multiple <- list(
+  "adver_prof0" = adver_lm0,
+  "adver_prof1" = adver_lm1,
+  "adver_prof2" = adver_lm2,
+  "adver_prof3" = adver_lm3,
+  "adver_prof4" = adver_lm4
+)
+
+models_adver_lm_prof <- list(
+  "age_prof" = adver_cg_age1,
+  "ideology_prof" = adver_cg_ideology1,
+  "is.republican_prof" = adver_cg_is.republican1,
+  "gender_prof" = adver_cg_gender1,
+  "chamber_prof" = adver_cg_chamber1,
+  "seniority_prof" = adver_cg_seniority1
+)
+
+model_legis_lm_dom_multiple <- list(
+  "legis_prof0" = legis_lm0,
+  "legis_prof1" = legis_lm1,
+  "legis_prof2" = legis_lm2,
+  "legis_prof3" = legis_lm3,
+  "legis_prof4" = legis_lm4
+)
+
+models_legis_lm_prof <- list(
+  "legis_age_prof" = legis_cg_age1,
+  "legis_ideology_prof" = legis_cg_ideology1,
+  "legis_is.republican_prof" = legis_cg_is.republican1,
+  "legis_gender_prof" = legis_cg_gender1,
+  "legis_chamber_prof" = legis_cg_chamber1,
+  "legis_seniority_prof" = legis_cg_seniority1
+)
+
+
+# 运行函数
+plot_lm_diagnostics(model_adver_lm_dom_multiple)
+plot_lm_diagnostics(model_legis_lm_dom_multiple)
+plot_lm_diagnostics(models_adver_lm_prof)
+plot_lm_diagnostics(models_legis_lm_prof)
+
+```
+
+### 7.7 plus independent variables 
 
 ```{r district-features-added}
 
@@ -3526,5 +5126,649 @@ modelsummary(
   escape = FALSE
 )
 ```
+
+### 7.8 plus entropy
+
+```{r entropy-regression}
+
+entropy_bills$congress <- as.character(entropy_bills$congress)
+entropy_news$congress <- as.character(entropy_news$congress)
+
+entropy_news_sel <- entropy_news %>% select(mid, congress, shannon_entropy)
+entropy_bills_sel <- entropy_bills %>% select(mid, congress, shannon_entropy)
+
+### Step 1: 合并 entropy_news 到 adver_cg
+adver_cg_entropy <- adver_cg %>%
+  left_join(entropy_news_sel, by = c("bioguide_id" = "mid", "congress" = "congress")) 
+
+legis_cg_entropy <- legis_cg %>%
+  left_join(entropy_bills_sel, by = c("bioguide_id" = "mid", "congress" = "congress"))
+
+
+### Step 2: 回归模型设定
+## (A) Logit: is.dom ~ entropy
+adver_logit_entropy <- glm(is.dom ~ shannon_entropy + age + ideology + chamber + gender + as.factor(congress),
+                   data = adver_cg_entropy,
+                   family = binomial())
+
+analyze_logit_model(adver_logit_entropy)
+
+legis_logit_entropy <- glm(is.dom ~ shannon_entropy + age + ideology + chamber + gender + as.factor(congress),
+                   data = legis_cg_entropy,
+                   family = binomial())
+
+analyze_logit_model(legis_logit_entropy)
+
+## (B) OLS: dom_percentage ~ entropy
+adver_ols_entropy <- lm(dom_percentage ~ shannon_entropy + age + ideology + chamber + gender + as.factor(congress),
+                data = adver_cg_entropy)
+summary(adver_ols_entropy)
+
+legis_ols_entropy <- lm(dom_percentage ~ shannon_entropy + age + ideology + chamber + gender + as.factor(congress),
+                data = legis_cg_entropy)
+summary(legis_ols_entropy)
+
+
+## (C) interact
+
+adver_logit_entropy <- glm(is.dom ~  shannon_entropy*seniority + ideology + chamber + gender + as.factor(congress),
+                   data = adver_cg_entropy,
+                   family = binomial())
+
+analyze_logit_model(adver_logit_entropy)
+
+legis_logit_entropy <- glm(is.dom ~ shannon_entropy*seniority + ideology + chamber + gender + as.factor(congress),
+                   data = legis_cg_entropy,
+                   family = binomial())
+
+analyze_logit_model(legis_logit_entropy)
+interact_plot(legis_logit_entropy, pred = shannon_entropy, modx = seniority, interval = TRUE)
+
+## (D) 分党派回归
+### 民主党
+model_dem <- lm(dom_percentage ~ shannon_entropy + age + ideology + chamber + gender + as.factor(congress),
+                data = adver_cg_entropy %>% filter(party == "Democrat"))
+
+### 共和党
+model_rep <- lm(dom_percentage ~ shannon_entropy + age + ideology + chamber + gender + as.factor(congress),
+                data = adver_cg_entropy %>% filter(party == "Republican"))
+
+```
+
+
+```{r interact-with-age}
+
+adver_cg_entropy %>%
+  select(age, seniority, shannon_entropy) %>%
+  cor(use = "complete.obs")
+cor.test(adver_cg_entropy$age, adver_cg_entropy$shannon_entropy)
+cor.test(adver_cg_entropy$seniority, adver_cg_entropy$shannon_entropy)
+
+legis_cg_entropy %>%
+  select(age, seniority, shannon_entropy) %>%
+  cor(use = "complete.obs")
+cor.test(legis_cg_entropy$age, legis_cg_entropy$shannon_entropy)
+cor.test(legis_cg_entropy$seniority, legis_cg_entropy$shannon_entropy)
+
+
+```
+
+```{r interact-with-gender}
+
+cor(adver_cg_entropy$gender_numeric, adver_cg_entropy$shannon_entropy, method = "pearson")
+
+adver_gender_entropy <- lm(shannon_entropy ~ age + ideology + chamber + gender + as.factor(congress),
+                data = adver_cg_entropy)
+summary(adver_gender_entropy)
+
+
+legis_gender_entropy <- lm(shannon_entropy ~ age + ideology + chamber + gender + as.factor(congress),
+                data = legis_cg_entropy)
+summary(legis_gender_entropy)
+
+```
+
+# 8. improve model R2
+
+## 8.1 change y
+
+```{r use orginal decision as y}
+
+library(nnet)
+
+#adver
+adver_decision <- multinom(decision ~ age +  ideology + chamber +  gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+
+adver_decision_result <- analyze_logit_model(adver_decision)
+
+
+#legis
+legis_decision <- multinom(decision ~ age +  ideology + chamber +  gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_decision_result <- analyze_logit_model(legis_decision)
+
+```
+
+
+## 8.2 for logit model
+
+### 8.2.1 interaction model
+
+
+```{r interaction}
+
+# 1. is. dom
+
+# ideology * chamber and gender
+
+adver_inter1 <- glm(is.dom ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = adver_cg, 
+                   family = binomial())
+analyze_logit_model(adver_inter1)
+
+
+
+legis_inter1 <- glm(is.dom ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+analyze_logit_model(legis_inter1)
+
+
+# effects
+install.packages("interactions")
+library(interactions)
+
+interact_plot(adver_inter1, pred = ideology, modx = chamber, interval = TRUE)
+sim_slopes(adver_inter1, pred = ideology, modx = chamber)
+
+interact_plot(adver_inter1, pred = ideology, modx = gender, interval = TRUE)
+sim_slopes(adver_inter1, pred = ideology, modx = gender)
+
+interact_plot(legis_inter1, pred = ideology, modx = chamber,interval = TRUE)
+sim_slopes(legis_inter1, pred = ideology, modx = chamber)
+
+interact_plot(legis_inter1, pred = ideology, modx = gender, interval = TRUE)
+sim_slopes(legis_inter1, pred = ideology, modx = gender)
+
+
+# combine
+
+
+p1 <- interact_plot(adver_inter1, pred = ideology, modx = chamber, interval = TRUE) +
+  ggtitle("Adver: Ideology × Chamber")
+
+p2 <- interact_plot(adver_inter1, pred = ideology, modx = gender, interval = TRUE) +
+  ggtitle("Adver: Ideology × Gender")
+
+p3 <- interact_plot(legis_inter1, pred = ideology, modx = chamber, interval = TRUE) +
+  ggtitle("Legis: Ideology × Chamber")
+
+p4 <- interact_plot(legis_inter1, pred = ideology, modx = gender, interval = TRUE) +
+  ggtitle("Legis: Ideology × Gender")
+
+
+combined_plot <- (p1 | p2) / (p3 | p4)
+combined_plot
+
+ggsave("interaction_all.png", plot = combined_plot, width = 12, height = 8, dpi = 300)
+
+```
+
+### 8.2.2 spline
+
+```{r spline}
+
+# use gam()
+
+
+adver_dom_gam <- gam(is.dom ~ s(age, k = 5) + s(ideology, k = 5) + chamber + gender +
+                 as.factor(congress),
+               family = binomial(),
+               data = adver_cg)
+summary(adver_dom_gam)
+
+AIC(adver_dom_gam); MuMIn::r.squaredLR(adver_dom_gam) # pR2 works with glm only, but you can compute logLik etc
+roc_gam <- roc(model.frame(adver_dom_gam)$is.dom, predict(adver_dom_gam, type = "response"))
+auc(roc_gam)
+plot(adver_dom_gam, pages = 1)  # 平滑函数可视化
+
+
+# spline
+
+
+adver_dom_spline <- glm(is.dom ~ ns(age, df=4) + ns(ideology, df=4) +
+              chamber + gender + as.factor(congress),
+    family = binomial(),
+    data = adver_cg_clean)
+
+AIC(adver_dom_spline); pR2(adver_dom_spline)["McFadden"]
+MuMIn::r.squaredLR(adver_dom_spline)
+
+legis_dom_spline <- glm(is.dom ~ ns(age, df = 4) + ns(ideology, df = 4) + chamber + gender + as.factor(congress),
+                  family = binomial(), data = legis_cg)
+
+AIC(legis_dom_spline); pR2(legis_dom_spline)["McFadden"]
+
+
+
+
+
+```
+
+### 8.2.3 poly
+
+```{r poly-logit}
+
+adver_cg$age2 <- adver_cg$age^2
+adver_cg$ideo2 <- adver_cg$ideology^2
+
+adver_cg_clean <- na.omit(adver_cg[, c("is.dom","age","age2","ideology","ideo2","chamber","gender","congress")])
+
+adver_dom_poly <- glm(is.dom ~ age + age2 + ideology + ideo2 +
+                      chamber + gender + as.factor(congress),
+                      family = binomial(),
+                      data = adver_cg_clean)
+
+AIC(adver_dom_poly); pR2(adver_dom_poly)["McFadden"]
+
+
+```
+
+
+### 8.2.4 grouped
+
+#### 8.2.4.1 grouped adver
+
+```{r grouped-adver}
+
+adver_cg_dem <- adver_cg %>% filter(party == "Democratic")
+adver_cg_rep <- adver_cg %>% filter(party == "Republican")
+
+# quartile
+
+quantile(adver_cg_dem$ideology, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quantile(adver_cg_rep$ideology, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+
+# ideology*chamber & ideology*gender
+
+adver_inter_dem <- glm(is.dom ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = adver_cg_dem, 
+                   family = binomial())
+analyze_logit_model(adver_inter_dem)
+
+
+adver_inter_rep <- glm(is.dom ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = adver_cg_rep, 
+                   family = binomial())
+analyze_logit_model(adver_inter_rep)
+
+interact_plot(adver_inter_dem, pred = ideology, modx = chamber, data = adver_cg_dem)
+interact_plot(adver_inter_rep, pred = ideology, modx = chamber, data = adver_cg_rep)
+
+# combine -----
+
+# 1. 创建预测数据框 
+# ideology 从最小到最大
+ideo_seq <- seq(min(c(adver_cg_dem$ideology, adver_cg_rep$ideology), na.rm=TRUE),
+                max(c(adver_cg_dem$ideology, adver_cg_rep$ideology), na.rm=TRUE),
+                length.out = 100)
+
+# 民主党预测
+pred_dem <- expand.grid(
+  ideology = ideo_seq,
+  chamber = c("Senate", "House of Representatives"),
+  age = mean(adver_cg_dem$age, na.rm = TRUE),
+  gender = "Female", # 基准
+  congress = "115"
+) %>%
+  mutate(
+    party = "Democrat",
+    pred = predict(adver_inter_dem, newdata = ., type = "response")
+  )
+
+# 共和党预测
+pred_rep <- expand.grid(
+  ideology = ideo_seq,
+  chamber = c("Senate", "House of Representatives"),
+  age = mean(adver_cg_rep$age, na.rm = TRUE),
+  gender = "Female", # 基准
+  congress = "115"
+) %>%
+  mutate(
+    party = "Republican",
+    pred = predict(adver_inter_rep, newdata = ., type = "response")
+  )
+
+# 合并
+pred_all <- bind_rows(pred_dem, pred_rep)
+
+
+# 2. 画图 
+p <- ggplot(pred_all, aes(x = ideology, y = pred, color = party, linetype = chamber)) +
+  geom_line(size = 1) +
+  scale_color_manual(values = c("Democrat" = "#0015BC", "Republican" = "#E9141D")) +
+  scale_linetype_manual(values = c("Senate" = "solid", "House of Representatives" = "dashed")) +
+  labs(
+    x = "Ideology",
+    y = "Predicted Probability of Domestic Mode",
+    color = "Party",
+    linetype = "Chamber",
+    title = "Ideology × Chamber Interaction by Party"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggsave("interaction_plot.png", plot = p, width = 8, height = 6, dpi = 300)
+
+# combine 2----
+
+install.packages("marginaleffects")
+library(marginaleffects)
+
+# 民主党
+pred_dem <- avg_predictions(
+  adver_inter_dem,
+  variables = list(
+    ideology = seq(min(adver_cg_dem$ideology, na.rm=TRUE),
+                   max(adver_cg_dem$ideology, na.rm=TRUE),
+                   length.out=50),
+    chamber = c("House of Representatives","Senate"),
+    gender = c("Male","Female")
+  ),
+  by = c("ideology", "chamber", "gender")
+) %>% 
+  mutate(party = "Democrat")
+
+# 共和党
+pred_rep <- avg_predictions(
+  adver_inter_rep,
+  variables = list(
+    ideology = seq(min(adver_cg_rep$ideology, na.rm=TRUE),
+                   max(adver_cg_rep$ideology, na.rm=TRUE),
+                   length.out=50),
+    chamber = c("House of Representatives","Senate"),
+    gender = c("Male","Female")
+  ),
+  by = c("ideology", "chamber", "gender")
+) %>% 
+  mutate(party = "Republican")
+
+# 合并
+pred_all <- bind_rows(pred_dem, pred_rep)
+
+p_all <- ggplot(pred_all, aes(x = ideology, y = estimate,
+                     color = interaction(gender, chamber),
+                     linetype = chamber)) +
+  geom_line(size=1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = interaction(gender, chamber)),
+              alpha = 0.2, color = NA) +
+  facet_wrap(~party) +
+  labs(
+    x = "Ideology (liberal → conservative)",
+    y = "Predicted Probability of Domestic Mode",
+    color = "Gender × Chamber",
+    fill = "Gender × Chamber",
+    linetype = "Chamber"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggsave("interaction_all_party&gender&chamber.png", plot = p_all, width = 12, height = 4, dpi = 300)
+
+```
+
+
+#### 8.2.4.2 grouped legis
+
+```{r grouped-legis}
+
+legis_cg_dem <- legis_cg %>% filter(party == "Democratic")
+legis_cg_rep <- legis_cg %>% filter(party == "Republican")
+
+quantile(adver_cg_dem$ideology, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+quantile(adver_cg_rep$ideology, probs = c(0, 0.25, 0.5, 0.75, 1), na.rm = TRUE)
+
+# export
+wb <- wb_workbook()
+wb$add_worksheet("dem"); wb$add_data("dem", legis_cg_dem)
+wb$add_worksheet("rep"); wb$add_data("rep", legis_cg_rep)
+wb$add_worksheet("dem_adver"); wb$add_data("dem_adver", adver_cg_dem)
+wb$add_worksheet("rep_adver"); wb$add_data("rep_adver", adver_cg_rep)
+wb_save(wb, "cg_grouped.xlsx")
+
+# ideology*chamber & ideology*gender
+
+legis_inter_dem <- glm(is.dom ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = legis_cg_dem, 
+                   family = binomial())
+analyze_logit_model(legis_inter_dem)
+
+
+legis_inter_rep <- glm(is.dom ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = legis_cg_rep, 
+                   family = binomial())
+analyze_logit_model(legis_inter_rep)
+
+interact_plot(legis_inter_dem, pred = ideology, modx = chamber, data = legis_cg_dem)
+interact_plot(legis_inter_rep, pred = ideology, modx = chamber, data = legis_cg_rep)
+
+
+# combine----
+
+# 民主党
+pred_dem <- avg_predictions(
+  legis_inter_dem,
+  variables = list(
+    ideology = seq(min(legis_cg_dem$ideology, na.rm=TRUE),
+                   max(legis_cg_dem$ideology, na.rm=TRUE),
+                   length.out=50),
+    chamber = c("House of Representatives","Senate"),
+    gender = c("Male","Female")
+  ),
+  by = c("ideology", "chamber", "gender")
+) %>% 
+  mutate(party = "Democrat")
+
+# 共和党
+pred_rep <- avg_predictions(
+  legis_inter_rep,
+  variables = list(
+    ideology = seq(min(legis_cg_rep$ideology, na.rm=TRUE),
+                   max(legis_cg_rep$ideology, na.rm=TRUE),
+                   length.out=50),
+    chamber = c("House of Representatives","Senate"),
+    gender = c("Male","Female")
+  ),
+  by = c("ideology", "chamber", "gender")
+) %>% 
+  mutate(party = "Republican")
+
+# 合并
+pred_all <- bind_rows(pred_dem, pred_rep)
+
+p_all <- ggplot(pred_all, aes(x = ideology, y = estimate,
+                     color = interaction(gender, chamber),
+                     linetype = chamber)) +
+  geom_line(size=1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = interaction(gender, chamber)),
+              alpha = 0.2, color = NA) +
+  facet_wrap(~party) +
+  labs(
+    x = "Ideology (liberal → conservative)",
+    y = "Predicted Probability of Domestic Mode",
+    color = "Gender × Chamber",
+    fill = "Gender × Chamber",
+    linetype = "Chamber"
+  ) +
+  theme_minimal(base_size = 14)
+
+ggsave("interaction_all_party&gender&chamber_legis.png", plot = p_all, width = 12, height = 4, dpi = 300)
+
+
+
+
+```
+
+
+
+
+## 8.3 lm model(higher r2)
+
+### 8.3.1 interaction model
+
+#### 8.3.1.1 adver
+
+```{r interaction-adver}
+
+# 1. dom_percentage
+
+# ideology * chamber and gender
+
+adver_lm_inter1 <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress),
+                   data = adver_cg)
+summary(adver_lm_inter1)
+
+
+legis_lm_inter1 <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress),
+                   data = legis_cg)
+summary(legis_lm_inter1)
+
+p1 <- interact_plot(adver_lm_inter1, pred = ideology, modx = gender, data = adver_cg)
+ggsave("gendered_interaction_plot.png", plot = p1, width = 8, height = 6, dpi = 300)
+
+
+
+# effects ----
+
+interact_plot(adver_lm_inter1, pred = ideology, modx = chamber,
+              plot.points = TRUE, interval = TRUE)
+interact_plot(adver_lm_inter1, pred = ideology, modx = gender,
+              plot.points = TRUE, interval = TRUE)
+
+
+interact_plot(legis_lm_inter1, pred = ideology, modx = chamber,
+              plot.points = TRUE, interval = TRUE)
+interact_plot(legis_lm_inter1, pred = ideology, modx = gender,
+              plot.points = TRUE, interval = TRUE)
+
+
+# grouped effects ----
+
+adver_inter_dem_lm <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = adver_cg_dem)
+summary(adver_inter_dem_lm)
+
+adver_inter_rep_lm <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = adver_cg_rep)
+summary(adver_inter_rep_lm)
+
+
+interact_plot(adver_inter_dem_lm, pred = ideology, modx = chamber, data = adver_cg_dem)
+sim_slopes(adver_inter_dem_lm, pred = ideology, modx = chamber)
+
+interact_plot(adver_inter_rep_lm, pred = ideology, modx = chamber, data = adver_cg_rep)
+sim_slopes(adver_inter_rep_lm, pred = ideology, modx = chamber)
+
+interact_plot(adver_inter_rep_lm, pred = ideology, modx = gender, data = adver_cg_rep)
+sim_slopes(adver_inter_rep_lm, pred = ideology, modx = gender)
+
+
+# output result together with is.dom
+
+modelsummary(
+  list(
+    "is.dom(full)" = adver_inter1,
+    "is.dom(dem)" = adver_inter_dem,
+    "is.dom(rep)" = adver_inter_rep,
+    "dom_percentage(full)" = adver_lm_inter1,
+    "dom_percentage(dem)" = adver_inter_dem_lm,
+    "dom_percentage(rep)" = adver_inter_rep_lm
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "adver_interaction.html",
+  escape = FALSE
+)
+```
+
+
+#### 8.3.1.2 legis
+
+```{r interaction-legis}
+
+# 1. dom_percentage
+
+# ideology * chamber and gender
+
+legis_lm_inter1 <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress),
+                   data = legis_cg)
+summary(legis_lm_inter1)
+
+
+legis_lm_inter1 <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress),
+                   data = legis_cg)
+summary(legis_lm_inter1)
+
+p1 <- interact_plot(legis_lm_inter1, pred = ideology, modx = gender, data = legis_cg)
+ggsave("gendered_interaction_plot.png", plot = p1, width = 8, height = 6, dpi = 300)
+
+sim_slopes(legis_lm_inter1, pred = ideology, modx = gender)
+
+# effects ----
+
+interact_plot(legis_lm_inter1, pred = ideology, modx = chamber, interval = TRUE)
+interact_plot(legis_lm_inter1, pred = ideology, modx = gender,interval = TRUE)
+
+
+interact_plot(legis_lm_inter1, pred = ideology, modx = chamber, interval = TRUE)
+interact_plot(legis_lm_inter1, pred = ideology, modx = gender,interval = TRUE)
+
+
+# grouped effects ----
+
+legis_inter_dem_lm <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = legis_cg_dem)
+summary(legis_inter_dem_lm)
+
+legis_inter_rep_lm <- lm(dom_percentage ~ age + ideology*chamber + ideology*gender + as.factor(congress), 
+                   data = legis_cg_rep)
+summary(legis_inter_rep_lm)
+
+
+interact_plot(legis_inter_dem_lm, pred = ideology, modx = chamber, data = legis_cg_dem)
+sim_slopes(legis_inter_dem_lm, pred = ideology, modx = chamber)
+
+interact_plot(legis_inter_rep_lm, pred = ideology, modx = chamber, data = legis_cg_rep)
+sim_slopes(legis_inter_rep_lm, pred = ideology, modx = chamber)
+
+interact_plot(legis_inter_rep_lm, pred = ideology, modx = gender, data = legis_cg_rep)
+sim_slopes(legis_inter_rep_lm, pred = ideology, modx = gender)
+
+
+
+
+# output result together with is.dom
+
+modelsummary(
+  list(
+    "is.dom(full)" = legis_inter1,
+    "is.dom(dem)" = legis_inter_dem,
+    "is.dom(rep)" = legis_inter_rep,
+    "dom_percentage(full)" = legis_lm_inter1,
+    "dom_percentage(dem)" = legis_inter_dem_lm,
+    "dom_percentage(rep)" = legis_inter_rep_lm
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = "legis_interaction.html",
+  escape = FALSE
+)
+
+
+```
+
+
 
 
