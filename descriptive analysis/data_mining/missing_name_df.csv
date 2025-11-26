@@ -1,0 +1,377 @@
+bioguide_id,direct_order_name,chamber,state_code,district,party,congress
+F000448,Trent Franks,House of Representatives,AZ,8,Republican,115
+F000448,Trent Franks,House of Representatives,AZ,8,Republican,117
+F000448,Trent Franks,House of Representatives,AZ,8,Republican,118
+S001175,Jackie Speier,House of Representatives,CA,14,Democratic,115
+S001175,Jackie Speier,House of Representatives,CA,14,Democratic,116
+S001175,Jackie Speier,House of Representatives,CA,14,Democratic,117
+S001175,Jackie Speier,House of Representatives,CA,14,Democratic,118
+K000387,Stephen Knight,House of Representatives,CA,25,Republican,115
+K000387,Stephen Knight,House of Representatives,CA,25,Republican,117
+K000387,Stephen Knight,House of Representatives,CA,25,Republican,118
+B001270,Karen Bass,House of Representatives,CA,37,Democratic,115
+B001270,Karen Bass,House of Representatives,CA,37,Democratic,116
+B001270,Karen Bass,House of Representatives,CA,37,Democratic,117
+B001270,Karen Bass,House of Representatives,CA,37,Democratic,118
+R000487,Edward R. Royce,House of Representatives,CA,39,Republican,115
+R000487,Edward R. Royce,House of Representatives,CA,39,Republican,117
+R000487,Edward R. Royce,House of Representatives,CA,39,Republican,118
+W000820,Mimi Walters,House of Representatives,CA,45,Republican,115
+W000820,Mimi Walters,House of Representatives,CA,45,Republican,117
+W000820,Mimi Walters,House of Representatives,CA,45,Republican,118
+L000579,Alan S. Lowenthal,House of Representatives,CA,47,Democratic,115
+L000579,Alan S. Lowenthal,House of Representatives,CA,47,Democratic,116
+L000579,Alan S. Lowenthal,House of Representatives,CA,47,Democratic,117
+L000579,Alan S. Lowenthal,House of Representatives,CA,47,Democratic,118
+R000409,Dana Rohrabacher,House of Representatives,CA,48,Republican,115
+R000409,Dana Rohrabacher,House of Representatives,CA,48,Republican,117
+R000409,Dana Rohrabacher,House of Representatives,CA,48,Republican,118
+H000981,Duncan Hunter,House of Representatives,CA,52,Republican,117
+H000981,Duncan Hunter,House of Representatives,CA,52,Republican,118
+C001094,Paul Cook,House of Representatives,CA,8,Republican,115
+C001094,Paul Cook,House of Representatives,CA,8,Republican,116
+C001094,Paul Cook,House of Representatives,CA,8,Republican,117
+C001094,Paul Cook,House of Representatives,CA,8,Republican,118
+P000598,Jared Polis,House of Representatives,CO,2,Democratic,115
+P000598,Jared Polis,House of Representatives,CO,2,Democratic,117
+P000598,Jared Polis,House of Representatives,CO,2,Democratic,118
+P000593,Ed Perlmutter,House of Representatives,CO,7,Democratic,115
+P000593,Ed Perlmutter,House of Representatives,CO,7,Democratic,116
+P000593,Ed Perlmutter,House of Representatives,CO,7,Democratic,117
+P000593,Ed Perlmutter,House of Representatives,CO,7,Democratic,118
+R000593,Dennis A. Ross,House of Representatives,FL,15,Republican,115
+R000593,Dennis A. Ross,House of Representatives,FL,15,Republican,118
+R000607,Francis Rooney,House of Representatives,FL,19,Republican,115
+R000607,Francis Rooney,House of Representatives,FL,19,Republican,116
+R000607,Francis Rooney,House of Representatives,FL,19,Republican,117
+R000607,Francis Rooney,House of Representatives,FL,19,Republican,118
+H000324,Alcee L. Hastings,House of Representatives,FL,20,Democratic,115
+H000324,Alcee L. Hastings,House of Representatives,FL,20,Democratic,116
+H000324,Alcee L. Hastings,House of Representatives,FL,20,Democratic,117
+H000324,Alcee L. Hastings,House of Representatives,FL,20,Democratic,118
+D000610,Theodore E. Deutch,House of Representatives,FL,22,Democratic,115
+D000610,Theodore E. Deutch,House of Representatives,FL,22,Democratic,116
+D000610,Theodore E. Deutch,House of Representatives,FL,22,Democratic,117
+D000610,Theodore E. Deutch,House of Representatives,FL,22,Democratic,118
+C001107,Carlos Curbelo,House of Representatives,FL,26,Republican,115
+C001107,Carlos Curbelo,House of Representatives,FL,26,Republican,117
+C001107,Carlos Curbelo,House of Representatives,FL,26,Republican,118
+R000435,Ileana Ros-Lehtinen,House of Representatives,FL,27,Republican,115
+S001206,Donna E. Shalala,House of Representatives,FL,27,Democratic,116
+R000435,Ileana Ros-Lehtinen,House of Representatives,FL,27,Republican,117
+S001206,Donna E. Shalala,House of Representatives,FL,27,Democratic,117
+R000435,Ileana Ros-Lehtinen,House of Representatives,FL,27,Republican,118
+S001206,Donna E. Shalala,House of Representatives,FL,27,Democratic,118
+Y000065,Ted S. Yoho,House of Representatives,FL,3,Republican,115
+Y000065,Ted S. Yoho,House of Representatives,FL,3,Republican,116
+Y000065,Ted S. Yoho,House of Representatives,FL,3,Republican,117
+Y000065,Ted S. Yoho,House of Representatives,FL,3,Republican,118
+D000621,Ron DeSantis,House of Representatives,FL,6,Republican,115
+D000621,Ron DeSantis,House of Representatives,FL,6,Republican,117
+D000621,Ron DeSantis,House of Representatives,FL,6,Republican,118
+H001071,Jody B. Hice,House of Representatives,GA,10,Republican,115
+H001071,Jody B. Hice,House of Representatives,GA,10,Republican,116
+H001071,Jody B. Hice,House of Representatives,GA,10,Republican,117
+H001071,Jody B. Hice,House of Representatives,GA,10,Republican,118
+L000287,John Lewis,House of Representatives,GA,5,Democratic,115
+L000287,John Lewis,House of Representatives,GA,5,Democratic,116
+L000287,John Lewis,House of Representatives,GA,5,Democratic,117
+L000287,John Lewis,House of Representatives,GA,5,Democratic,118
+B001245,Madeleine Z. Bordallo,House of Representatives,GU,NA,Democratic,115
+B001245,Madeleine Z. Bordallo,House of Representatives,GU,NA,Democratic,118
+K000396,Kaiali'I Kahele,House of Representatives,HI,2,Democratic,117
+K000396,Kaiali'I Kahele,House of Representatives,HI,2,Democratic,118
+A000378,Cynthia Axne,House of Representatives,IA,3,Democratic,116
+A000378,Cynthia Axne,House of Representatives,IA,3,Democratic,117
+A000378,Cynthia Axne,House of Representatives,IA,3,Democratic,118
+K000362,Steve King,House of Representatives,IA,4,Republican,115
+K000362,Steve King,House of Representatives,IA,4,Republican,116
+K000362,Steve King,House of Representatives,IA,4,Republican,117
+K000362,Steve King,House of Representatives,IA,4,Republican,118
+H001059,Randy Hultgren,House of Representatives,IL,14,Republican,115
+H001059,Randy Hultgren,House of Representatives,IL,14,Republican,117
+H001059,Randy Hultgren,House of Representatives,IL,14,Republican,118
+S000364,John Shimkus,House of Representatives,IL,15,Republican,115
+S000364,John Shimkus,House of Representatives,IL,15,Republican,116
+S000364,John Shimkus,House of Representatives,IL,15,Republican,118
+L000563,Daniel Lipinski,House of Representatives,IL,3,Democratic,115
+L000563,Daniel Lipinski,House of Representatives,IL,3,Democratic,116
+L000563,Daniel Lipinski,House of Representatives,IL,3,Democratic,117
+N000192,Marie Newman,House of Representatives,IL,3,Democratic,117
+L000563,Daniel Lipinski,House of Representatives,IL,3,Democratic,118
+N000192,Marie Newman,House of Representatives,IL,3,Democratic,118
+G000535,Luis V. Gutierrez,House of Representatives,IL,4,Democratic,115
+G000535,Luis V. Gutierrez,House of Representatives,IL,4,Democratic,117
+G000535,Luis V. Gutierrez,House of Representatives,IL,4,Democratic,118
+W000813,Jackie Walorski,House of Representatives,IN,2,Republican,115
+W000813,Jackie Walorski,House of Representatives,IN,2,Republican,116
+W000813,Jackie Walorski,House of Representatives,IN,2,Republican,117
+W000813,Jackie Walorski,House of Representatives,IN,2,Republican,118
+R000592,Todd Rokita,House of Representatives,IN,4,Republican,115
+R000592,Todd Rokita,House of Representatives,IN,4,Republican,117
+R000592,Todd Rokita,House of Representatives,IN,4,Republican,118
+M001189,Luke Messer,House of Representatives,IN,6,Republican,115
+M001189,Luke Messer,House of Representatives,IN,6,Republican,118
+Y000063,Kevin Yoder,House of Representatives,KS,3,Republican,115
+Y000063,Kevin Yoder,House of Representatives,KS,3,Republican,118
+K000379,Joseph P. Kennedy III,House of Representatives,MA,4,Democratic,115
+K000379,Joseph P. Kennedy III,House of Representatives,MA,4,Democratic,116
+K000379,Joseph P. Kennedy III,House of Representatives,MA,4,Democratic,117
+K000379,Joseph P. Kennedy III,House of Representatives,MA,4,Democratic,118
+C001037,Michael E. Capuano,House of Representatives,MA,7,Democratic,115
+C001037,Michael E. Capuano,House of Representatives,MA,7,Democratic,117
+C001037,Michael E. Capuano,House of Representatives,MA,7,Democratic,118
+C000984,Elijah E. Cummings,House of Representatives,MD,7,Democratic,115
+C000984,Elijah E. Cummings,House of Representatives,MD,7,Democratic,116
+C000984,Elijah E. Cummings,House of Representatives,MD,7,Democratic,117
+C000984,Elijah E. Cummings,House of Representatives,MD,7,Democratic,118
+C000714,"John Conyers, Jr.",House of Representatives,MI,13,Democratic,115
+C000714,"John Conyers, Jr.",House of Representatives,MI,13,Democratic,117
+C000714,"John Conyers, Jr.",House of Representatives,MI,13,Democratic,118
+L000581,Brenda L. Lawrence,House of Representatives,MI,14,Democratic,115
+L000581,Brenda L. Lawrence,House of Representatives,MI,14,Democratic,116
+L000581,Brenda L. Lawrence,House of Representatives,MI,14,Democratic,117
+L000581,Brenda L. Lawrence,House of Representatives,MI,14,Democratic,118
+B001293,Mike Bishop,House of Representatives,MI,8,Republican,115
+B001293,Mike Bishop,House of Representatives,MI,8,Republican,117
+B001293,Mike Bishop,House of Representatives,MI,8,Republican,118
+L000263,Sander M. Levin,House of Representatives,MI,9,Democratic,115
+L000592,Andy Levin,House of Representatives,MI,9,Democratic,116
+L000263,Sander M. Levin,House of Representatives,MI,9,Democratic,117
+L000592,Andy Levin,House of Representatives,MI,9,Democratic,117
+L000263,Sander M. Levin,House of Representatives,MI,9,Democratic,118
+L000592,Andy Levin,House of Representatives,MI,9,Democratic,118
+E000288,Keith Ellison,House of Representatives,MN,5,Democratic,115
+E000288,Keith Ellison,House of Representatives,MN,5,Democratic,117
+E000288,Keith Ellison,House of Representatives,MN,5,Democratic,118
+P000258,Collin C. Peterson,House of Representatives,MN,7,Democratic,115
+P000258,Collin C. Peterson,House of Representatives,MN,7,Democratic,116
+P000258,Collin C. Peterson,House of Representatives,MN,7,Democratic,117
+P000258,Collin C. Peterson,House of Representatives,MN,7,Democratic,118
+N000127,Richard M. Nolan,House of Representatives,MN,8,Democratic,115
+N000127,Richard M. Nolan,House of Representatives,MN,8,Democratic,117
+N000127,Richard M. Nolan,House of Representatives,MN,8,Democratic,118
+C001049,Wm. Lacy Clay,House of Representatives,MO,1,Democratic,115
+C001049,Wm. Lacy Clay,House of Representatives,MO,1,Democratic,116
+C001049,Wm. Lacy Clay,House of Representatives,MO,1,Democratic,117
+C001049,Wm. Lacy Clay,House of Representatives,MO,1,Democratic,118
+H001053,Vicky Hartzler,House of Representatives,MO,4,Republican,115
+H001053,Vicky Hartzler,House of Representatives,MO,4,Republican,116
+H001053,Vicky Hartzler,House of Representatives,MO,4,Republican,117
+H001053,Vicky Hartzler,House of Representatives,MO,4,Republican,118
+H001045,Gregg Harper,House of Representatives,MS,3,Republican,115
+H001045,Gregg Harper,House of Representatives,MS,3,Republican,117
+H001045,Gregg Harper,House of Representatives,MS,3,Republican,118
+M001187,Mark Meadows,House of Representatives,NC,11,Republican,115
+M001187,Mark Meadows,House of Representatives,NC,11,Republican,116
+M001187,Mark Meadows,House of Representatives,NC,11,Republican,117
+M001187,Mark Meadows,House of Representatives,NC,11,Republican,118
+P000523,David E. Price,House of Representatives,NC,4,Democratic,115
+P000523,David E. Price,House of Representatives,NC,4,Democratic,116
+P000523,David E. Price,House of Representatives,NC,4,Democratic,117
+P000523,David E. Price,House of Representatives,NC,4,Democratic,118
+P000606,Robert Pittenger,House of Representatives,NC,9,Republican,115
+P000606,Robert Pittenger,House of Representatives,NC,9,Republican,117
+P000606,Robert Pittenger,House of Representatives,NC,9,Republican,118
+L000554,Frank A. LoBiondo,House of Representatives,NJ,2,Republican,115
+L000554,Frank A. LoBiondo,House of Representatives,NJ,2,Republican,117
+L000554,Frank A. LoBiondo,House of Representatives,NJ,2,Republican,118
+M001193,Thomas MacArthur,House of Representatives,NJ,3,Republican,115
+M001193,Thomas MacArthur,House of Representatives,NJ,3,Republican,117
+M001193,Thomas MacArthur,House of Representatives,NJ,3,Republican,118
+L000567,Leonard Lance,House of Representatives,NJ,7,Republican,115
+M001203,Tom Malinowski,House of Representatives,NJ,7,Democratic,116
+L000567,Leonard Lance,House of Representatives,NJ,7,Republican,117
+M001203,Tom Malinowski,House of Representatives,NJ,7,Democratic,117
+L000567,Leonard Lance,House of Representatives,NJ,7,Republican,118
+M001203,Tom Malinowski,House of Representatives,NJ,7,Democratic,118
+S001165,Albio Sires,House of Representatives,NJ,8,Democratic,115
+S001165,Albio Sires,House of Representatives,NJ,8,Democratic,116
+S001165,Albio Sires,House of Representatives,NJ,8,Democratic,117
+S001165,Albio Sires,House of Representatives,NJ,8,Democratic,118
+Z000017,Lee M. Zeldin,House of Representatives,NY,1,Republican,115
+Z000017,Lee M. Zeldin,House of Representatives,NY,1,Republican,116
+Z000017,Lee M. Zeldin,House of Representatives,NY,1,Republican,117
+Z000017,Lee M. Zeldin,House of Representatives,NY,1,Republican,118
+M000087,Carolyn B. Maloney,House of Representatives,NY,12,Democratic,115
+M000087,Carolyn B. Maloney,House of Representatives,NY,12,Democratic,116
+M000087,Carolyn B. Maloney,House of Representatives,NY,12,Democratic,117
+M000087,Carolyn B. Maloney,House of Representatives,NY,12,Democratic,118
+C001038,Joseph Crowley,House of Representatives,NY,14,Democratic,115
+C001038,Joseph Crowley,House of Representatives,NY,14,Democratic,117
+C001038,Joseph Crowley,House of Representatives,NY,14,Democratic,118
+S000248,Jose E. Serrano,House of Representatives,NY,15,Democratic,115
+S000248,Jose E. Serrano,House of Representatives,NY,15,Democratic,116
+S000248,Jose E. Serrano,House of Representatives,NY,15,Democratic,117
+S000248,Jose E. Serrano,House of Representatives,NY,15,Democratic,118
+E000179,Eliot L. Engel,House of Representatives,NY,16,Democratic,115
+E000179,Eliot L. Engel,House of Representatives,NY,16,Democratic,116
+E000179,Eliot L. Engel,House of Representatives,NY,16,Democratic,117
+E000179,Eliot L. Engel,House of Representatives,NY,16,Democratic,118
+L000480,Nita M. Lowey,House of Representatives,NY,17,Democratic,115
+L000480,Nita M. Lowey,House of Representatives,NY,17,Democratic,116
+J000306,Mondaire Jones,House of Representatives,NY,17,Democratic,117
+L000480,Nita M. Lowey,House of Representatives,NY,17,Democratic,117
+J000306,Mondaire Jones,House of Representatives,NY,17,Democratic,118
+L000480,Nita M. Lowey,House of Representatives,NY,17,Democratic,118
+M001185,Sean Patrick Maloney,House of Representatives,NY,18,Democratic,115
+M001185,Sean Patrick Maloney,House of Representatives,NY,18,Democratic,116
+M001185,Sean Patrick Maloney,House of Representatives,NY,18,Democratic,117
+M001185,Sean Patrick Maloney,House of Representatives,NY,18,Democratic,118
+F000464,John J. Faso,House of Representatives,NY,19,Republican,115
+F000464,John J. Faso,House of Representatives,NY,19,Republican,117
+F000464,John J. Faso,House of Representatives,NY,19,Republican,118
+K000210,Peter T. King,House of Representatives,NY,2,Republican,115
+K000210,Peter T. King,House of Representatives,NY,2,Republican,116
+K000210,Peter T. King,House of Representatives,NY,2,Republican,117
+K000210,Peter T. King,House of Representatives,NY,2,Republican,118
+S000480,Louise McIntosh Slaughter,House of Representatives,NY,25,Democratic,115
+S000480,Louise McIntosh Slaughter,House of Representatives,NY,25,Democratic,117
+S000480,Louise McIntosh Slaughter,House of Representatives,NY,25,Democratic,118
+R000602,Kathleen M. Rice,House of Representatives,NY,4,Democratic,115
+R000602,Kathleen M. Rice,House of Representatives,NY,4,Democratic,116
+R000602,Kathleen M. Rice,House of Representatives,NY,4,Democratic,117
+R000602,Kathleen M. Rice,House of Representatives,NY,4,Democratic,118
+C000266,Steve Chabot,House of Representatives,OH,1,Republican,115
+C000266,Steve Chabot,House of Representatives,OH,1,Republican,116
+C000266,Steve Chabot,House of Representatives,OH,1,Republican,117
+C000266,Steve Chabot,House of Representatives,OH,1,Republican,118
+R000577,Tim Ryan,House of Representatives,OH,13,Democratic,115
+R000577,Tim Ryan,House of Representatives,OH,13,Democratic,116
+R000577,Tim Ryan,House of Representatives,OH,13,Democratic,117
+R000577,Tim Ryan,House of Representatives,OH,13,Democratic,118
+S001187,Steve Stivers,House of Representatives,OH,15,Republican,115
+S001187,Steve Stivers,House of Representatives,OH,15,Republican,116
+S001187,Steve Stivers,House of Representatives,OH,15,Republican,117
+S001187,Steve Stivers,House of Representatives,OH,15,Republican,118
+D000191,Peter A. DeFazio,House of Representatives,OR,4,Democratic,115
+D000191,Peter A. DeFazio,House of Representatives,OR,4,Democratic,116
+D000191,Peter A. DeFazio,House of Representatives,OR,4,Democratic,117
+D000191,Peter A. DeFazio,House of Representatives,OR,4,Democratic,118
+B001227,Robert A. Brady,House of Representatives,PA,1,Democratic,115
+B001227,Robert A. Brady,House of Representatives,PA,1,Democratic,117
+B001227,Robert A. Brady,House of Representatives,PA,1,Democratic,118
+L000588,Conor Lamb,House of Representatives,PA,17,Democratic,116
+L000588,Conor Lamb,House of Representatives,PA,17,Democratic,117
+L000588,Conor Lamb,House of Representatives,PA,17,Democratic,118
+L000559,James R. Langevin,House of Representatives,RI,2,Democratic,115
+L000559,James R. Langevin,House of Representatives,RI,2,Democratic,116
+L000559,James R. Langevin,House of Representatives,RI,2,Democratic,117
+L000559,James R. Langevin,House of Representatives,RI,2,Democratic,118
+G000552,Louie Gohmert,House of Representatives,TX,1,Republican,115
+G000552,Louie Gohmert,House of Representatives,TX,1,Republican,116
+G000552,Louie Gohmert,House of Representatives,TX,1,Republican,117
+G000552,Louie Gohmert,House of Representatives,TX,1,Republican,118
+P000592,Ted Poe,House of Representatives,TX,2,Republican,115
+P000592,Ted Poe,House of Representatives,TX,2,Republican,117
+P000592,Ted Poe,House of Representatives,TX,2,Republican,118
+O000168,Pete Olson,House of Representatives,TX,22,Republican,115
+O000168,Pete Olson,House of Representatives,TX,22,Republican,116
+O000168,Pete Olson,House of Representatives,TX,22,Republican,117
+O000168,Pete Olson,House of Representatives,TX,22,Republican,118
+M001158,Kenny Marchant,House of Representatives,TX,24,Republican,115
+M001158,Kenny Marchant,House of Representatives,TX,24,Republican,116
+M001158,Kenny Marchant,House of Representatives,TX,24,Republican,118
+F000460,Blake Farenthold,House of Representatives,TX,27,Republican,115
+F000460,Blake Farenthold,House of Representatives,TX,27,Republican,118
+G000410,Gene Green,House of Representatives,TX,29,Democratic,115
+G000410,Gene Green,House of Representatives,TX,29,Democratic,117
+G000410,Gene Green,House of Representatives,TX,29,Democratic,118
+J000174,Sam Johnson,House of Representatives,TX,3,Republican,115
+T000479,Van Taylor,House of Representatives,TX,3,Republican,116
+J000174,Sam Johnson,House of Representatives,TX,3,Republican,117
+T000479,Van Taylor,House of Representatives,TX,3,Republican,117
+J000174,Sam Johnson,House of Representatives,TX,3,Republican,118
+T000479,Van Taylor,House of Representatives,TX,3,Republican,118
+J000126,Eddie Bernice Johnson,House of Representatives,TX,30,Democratic,115
+J000126,Eddie Bernice Johnson,House of Representatives,TX,30,Democratic,116
+J000126,Eddie Bernice Johnson,House of Representatives,TX,30,Democratic,117
+J000126,Eddie Bernice Johnson,House of Representatives,TX,30,Democratic,118
+R000601,John Ratcliffe,House of Representatives,TX,4,Republican,115
+R000601,John Ratcliffe,House of Representatives,TX,4,Republican,116
+R000601,John Ratcliffe,House of Representatives,TX,4,Republican,117
+R000601,John Ratcliffe,House of Representatives,TX,4,Republican,118
+B000213,Joe Barton,House of Representatives,TX,6,Republican,115
+B000213,Joe Barton,House of Representatives,TX,6,Republican,117
+B000213,Joe Barton,House of Representatives,TX,6,Republican,118
+B001250,Rob Bishop,House of Representatives,UT,1,Republican,115
+B001250,Rob Bishop,House of Representatives,UT,1,Republican,116
+B001250,Rob Bishop,House of Representatives,UT,1,Republican,117
+B001250,Rob Bishop,House of Representatives,UT,1,Republican,118
+L000591,Elaine G. Luria,House of Representatives,VA,2,Democratic,116
+L000591,Elaine G. Luria,House of Representatives,VA,2,Democratic,117
+L000591,Elaine G. Luria,House of Representatives,VA,2,Democratic,118
+M001200,A. Donald McEachin,House of Representatives,VA,4,Democratic,115
+M001200,A. Donald McEachin,House of Representatives,VA,4,Democratic,116
+M001200,A. Donald McEachin,House of Representatives,VA,4,Democratic,117
+M001200,A. Donald McEachin,House of Representatives,VA,4,Democratic,118
+R000611,Denver Riggleman,House of Representatives,VA,5,Republican,116
+R000611,Denver Riggleman,House of Representatives,VA,5,Republican,117
+R000611,Denver Riggleman,House of Representatives,VA,5,Republican,118
+B001290,Dave Brat,House of Representatives,VA,7,Republican,115
+B001290,Dave Brat,House of Representatives,VA,7,Republican,118
+S000244,"F. James Sensenbrenner, Jr.",House of Representatives,WI,5,Republican,115
+S000244,"F. James Sensenbrenner, Jr.",House of Representatives,WI,5,Republican,116
+S000244,"F. James Sensenbrenner, Jr.",House of Representatives,WI,5,Republican,117
+S000244,"F. James Sensenbrenner, Jr.",House of Representatives,WI,5,Republican,118
+S000320,Richard C. Shelby,Senate,AL,NA,Republican,115
+S000320,Richard C. Shelby,Senate,AL,NA,Republican,116
+S000320,Richard C. Shelby,Senate,AL,NA,Republican,117
+S000320,Richard C. Shelby,Senate,AL,NA,Republican,118
+F000444,Jeff Flake,Senate,AZ,NA,Republican,115
+F000444,Jeff Flake,Senate,AZ,NA,Republican,117
+F000444,Jeff Flake,Senate,AZ,NA,Republican,118
+G000562,Cory Gardner,Senate,CO,NA,Republican,115
+G000562,Cory Gardner,Senate,CO,NA,Republican,116
+G000562,Cory Gardner,Senate,CO,NA,Republican,117
+G000562,Cory Gardner,Senate,CO,NA,Republican,118
+I000055,Johnny Isakson,Senate,GA,NA,Republican,115
+I000055,Johnny Isakson,Senate,GA,NA,Republican,116
+I000055,Johnny Isakson,Senate,GA,NA,Republican,117
+I000055,Johnny Isakson,Senate,GA,NA,Republican,118
+D000607,Joe Donnelly,Senate,IN,NA,Democratic,115
+D000607,Joe Donnelly,Senate,IN,NA,Democratic,117
+D000607,Joe Donnelly,Senate,IN,NA,Democratic,118
+R000307,Pat Roberts,Senate,KS,NA,Republican,115
+R000307,Pat Roberts,Senate,KS,NA,Republican,116
+R000307,Pat Roberts,Senate,KS,NA,Republican,117
+R000307,Pat Roberts,Senate,KS,NA,Republican,118
+F000457,Al  Franken,Senate,MN,NA,Democratic,115
+F000457,Al  Franken,Senate,MN,NA,Democratic,117
+F000457,Al  Franken,Senate,MN,NA,Democratic,118
+B000575,Roy Blunt,Senate,MO,NA,Republican,115
+M001170,Claire McCaskill,Senate,MO,NA,Democratic,115
+B000575,Roy Blunt,Senate,MO,NA,Republican,116
+B000575,Roy Blunt,Senate,MO,NA,Republican,117
+M001170,Claire McCaskill,Senate,MO,NA,Democratic,117
+B000575,Roy Blunt,Senate,MO,NA,Republican,118
+M001170,Claire McCaskill,Senate,MO,NA,Democratic,118
+B001135,Richard Burr,Senate,NC,NA,Republican,115
+B001135,Richard Burr,Senate,NC,NA,Republican,116
+B001135,Richard Burr,Senate,NC,NA,Republican,117
+B001135,Richard Burr,Senate,NC,NA,Republican,118
+H001069,Heidi  Heitkamp,Senate,ND,NA,Democratic,115
+H001069,Heidi  Heitkamp,Senate,ND,NA,Democratic,117
+H001069,Heidi  Heitkamp,Senate,ND,NA,Democratic,118
+S001197,Ben Sasse,Senate,NE,NA,Republican,115
+S001197,Ben Sasse,Senate,NE,NA,Republican,116
+S001197,Ben Sasse,Senate,NE,NA,Republican,117
+S001197,Ben Sasse,Senate,NE,NA,Republican,118
+H001041,Dean Heller,Senate,NV,NA,Republican,115
+H001041,Dean Heller,Senate,NV,NA,Republican,117
+H001041,Dean Heller,Senate,NV,NA,Republican,118
+P000449,Rob Portman,Senate,OH,NA,Republican,115
+P000449,Rob Portman,Senate,OH,NA,Republican,116
+P000449,Rob Portman,Senate,OH,NA,Republican,117
+P000449,Rob Portman,Senate,OH,NA,Republican,118
+I000024,James M. Inhofe,Senate,OK,NA,Republican,115
+I000024,James M. Inhofe,Senate,OK,NA,Republican,116
+I000024,James M. Inhofe,Senate,OK,NA,Republican,117
+I000024,James M. Inhofe,Senate,OK,NA,Republican,118
+C001071,Bob Corker,Senate,TN,NA,Republican,115
+C001071,Bob Corker,Senate,TN,NA,Republican,117
+C001071,Bob Corker,Senate,TN,NA,Republican,118
+L000174,Patrick J. Leahy,Senate,VT,NA,Democratic,115
+L000174,Patrick J. Leahy,Senate,VT,NA,Democratic,116
+L000174,Patrick J. Leahy,Senate,VT,NA,Democratic,117
+L000174,Patrick J. Leahy,Senate,VT,NA,Democratic,118
