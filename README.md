@@ -13,3 +13,7 @@ This project was not preregistered prior to data analysis.
 
 ## Reproducibility
 Run scripts in the /code directory in the order specified to reproduce results.
+
+## License
+Code is released under the MIT License.
+Data are released under the CC-BY 4.0 License.
