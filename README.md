@@ -17,3 +17,7 @@ Run scripts in the /code directory in the order specified to reproduce results.
 ## License
 Code is released under the MIT License.
 Data are released under the CC-BY 4.0 License.
+
+## Note on Code Comments
+
+Some scripts in this repository still contain comments in Chinese. These comments do **not** affect the execution or reproducibility of the code. In future commits, all comments will be gradually updated to English to improve readability for international users. The core functionality and results of all analyses remain fully reproducible.
