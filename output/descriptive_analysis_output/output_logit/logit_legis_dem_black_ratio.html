@@ -1,0 +1,382 @@
+<!-- preamble start -->
+<!DOCTYPE html> 
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tinytable_4eprtprcjwaxn0j2bv3n</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+<!-- preamble end -->
+
+    <script>
+
+      function styleCell_4eprtprcjwaxn0j2bv3n(i, j, css_id) {
+          var table = document.getElementById("tinytable_4eprtprcjwaxn0j2bv3n");
+          var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+          if (cell) {
+              console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
+              cell.classList.add(css_id);
+          } else {
+              console.warn(`Cell at (${i}, ${j}) not found.`);
+          }
+      }
+      function spanCell_4eprtprcjwaxn0j2bv3n(i, j, rowspan, colspan) {
+        var table = document.getElementById("tinytable_4eprtprcjwaxn0j2bv3n");
+        const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+        if (!targetCell) {
+          console.warn(`Cell at (${i}, ${j}) not found.`);
+        }
+
+        // Get all cells that need to be removed
+        const cellsToRemove = [];
+        for (let r = 0; r < rowspan; r++) {
+          for (let c = 0; c < colspan; c++) {
+            if (r === 0 && c === 0) continue; // Skip the target cell
+            const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
+            if (cell) {
+              cellsToRemove.push(cell);
+            }
+          }
+        }
+
+        // Remove all cells
+        cellsToRemove.forEach(cell => cell.remove());
+
+        // Set rowspan and colspan of the target cell if it exists
+        if (targetCell) {
+          targetCell.rowSpan = rowspan;
+          targetCell.colSpan = colspan;
+        }
+      }
+      // tinytable span after
+      window.addEventListener('load', function () {
+          var cellsToStyle = [
+            // tinytable style arrays after
+          { positions: [ { i: '34', j: 2 }, { i: '34', j: 3 }, { i: '34', j: 1 }, { i: '34', j: 4 }, { i: '34', j: 5 },  ], css_id: 'tinytable_css_xetnn7r6qm47etwfa8nu',}, 
+          { positions: [ { i: '28', j: 1 }, { i: '28', j: 2 }, { i: '28', j: 3 }, { i: '28', j: 4 }, { i: '28', j: 5 },  ], css_id: 'tinytable_css_vxa3phhote2aqs9x426u',}, 
+          { positions: [ { i: '2', j: 1 }, { i: '1', j: 1 }, { i: '6', j: 1 }, { i: '3', j: 1 }, { i: '5', j: 1 }, { i: '10', j: 1 }, { i: '11', j: 1 }, { i: '8', j: 1 }, { i: '13', j: 1 }, { i: '14', j: 1 }, { i: '15', j: 1 }, { i: '16', j: 1 }, { i: '4', j: 1 }, { i: '18', j: 1 }, { i: '19', j: 1 }, { i: '7', j: 1 }, { i: '21', j: 1 }, { i: '9', j: 1 }, { i: '23', j: 1 }, { i: '24', j: 1 }, { i: '12', j: 1 }, { i: '26', j: 1 }, { i: '27', j: 1 }, { i: '33', j: 2 }, { i: '29', j: 1 }, { i: '17', j: 1 }, { i: '31', j: 1 }, { i: '32', j: 1 }, { i: '33', j: 1 }, { i: '4', j: 3 }, { i: '22', j: 1 }, { i: '1', j: 2 }, { i: '2', j: 2 }, { i: '3', j: 2 }, { i: '4', j: 2 }, { i: '5', j: 2 }, { i: '6', j: 2 }, { i: '7', j: 2 }, { i: '8', j: 2 }, { i: '9', j: 2 }, { i: '10', j: 2 }, { i: '11', j: 2 }, { i: '12', j: 2 }, { i: '13', j: 2 }, { i: '14', j: 2 }, { i: '15', j: 2 }, { i: '16', j: 2 }, { i: '17', j: 2 }, { i: '18', j: 2 }, { i: '19', j: 2 }, { i: '20', j: 2 }, { i: '21', j: 2 }, { i: '22', j: 2 }, { i: '23', j: 2 }, { i: '24', j: 2 }, { i: '20', j: 1 }, { i: '26', j: 2 }, { i: '27', j: 2 }, { i: '33', j: 3 }, { i: '29', j: 2 }, { i: '25', j: 1 }, { i: '31', j: 2 }, { i: '32', j: 2 }, { i: '3', j: 4 }, { i: '4', j: 4 }, { i: '30', j: 1 }, { i: '1', j: 3 }, { i: '2', j: 3 }, { i: '3', j: 3 }, { i: '9', j: 4 }, { i: '5', j: 3 }, { i: '6', j: 3 }, { i: '7', j: 3 }, { i: '8', j: 3 }, { i: '9', j: 3 }, { i: '10', j: 3 }, { i: '11', j: 3 }, { i: '12', j: 3 }, { i: '13', j: 3 }, { i: '14', j: 3 }, { i: '15', j: 3 }, { i: '16', j: 3 }, { i: '17', j: 3 }, { i: '18', j: 3 }, { i: '19', j: 3 }, { i: '20', j: 3 }, { i: '21', j: 3 }, { i: '22', j: 3 }, { i: '23', j: 3 }, { i: '24', j: 3 }, { i: '25', j: 3 }, { i: '26', j: 3 }, { i: '27', j: 3 }, { i: '33', j: 4 }, { i: '29', j: 3 }, { i: '25', j: 2 }, { i: '31', j: 3 }, { i: '32', j: 3 }, { i: '3', j: 5 }, { i: '4', j: 5 }, { i: '30', j: 2 }, { i: '1', j: 4 }, { i: '2', j: 4 }, { i: '8', j: 5 }, { i: '9', j: 5 }, { i: '5', j: 4 }, { i: '6', j: 4 }, { i: '7', j: 4 }, { i: '8', j: 4 }, { i: '14', j: 5 }, { i: '10', j: 4 }, { i: '11', j: 4 }, { i: '12', j: 4 }, { i: '13', j: 4 }, { i: '14', j: 4 }, { i: '15', j: 4 }, { i: '16', j: 4 }, { i: '17', j: 4 }, { i: '18', j: 4 }, { i: '19', j: 4 }, { i: '20', j: 4 }, { i: '21', j: 4 }, { i: '22', j: 4 }, { i: '23', j: 4 }, { i: '24', j: 4 }, { i: '25', j: 4 }, { i: '26', j: 4 }, { i: '27', j: 4 }, { i: '33', j: 5 }, { i: '29', j: 4 }, { i: '30', j: 4 }, { i: '31', j: 4 }, { i: '32', j: 4 }, { i: '11', j: 5 }, { i: '12', j: 5 }, { i: '30', j: 3 }, { i: '1', j: 5 }, { i: '2', j: 5 }, { i: '16', j: 5 }, { i: '17', j: 5 }, { i: '5', j: 5 }, { i: '6', j: 5 }, { i: '7', j: 5 }, { i: '21', j: 5 }, { i: '22', j: 5 }, { i: '10', j: 5 }, { i: '24', j: 5 }, { i: '25', j: 5 }, { i: '13', j: 5 }, { i: '27', j: 5 }, { i: '15', j: 5 }, { i: '29', j: 5 }, { i: '30', j: 5 }, { i: '18', j: 5 }, { i: '19', j: 5 }, { i: '20', j: 5 }, { i: '26', j: 5 }, { i: '23', j: 5 }, { i: '32', j: 5 }, { i: '31', j: 5 },  ], css_id: 'tinytable_css_64riim6v1y634a9slpsw',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 5 }, { i: '0', j: 3 }, { i: '0', j: 4 },  ], css_id: 'tinytable_css_7a1l6xdctsxj7n5l9ojh',}, 
+          { positions: [ { i: '34', j: 0 },  ], css_id: 'tinytable_css_6ygiklh20igk0r9jyfbf',}, 
+          { positions: [ { i: '28', j: 0 },  ], css_id: 'tinytable_css_wd449m6iuosrypv6glnv',}, 
+          { positions: [ { i: '1', j: 0 }, { i: '2', j: 0 }, { i: '3', j: 0 }, { i: '4', j: 0 }, { i: '5', j: 0 }, { i: '6', j: 0 }, { i: '7', j: 0 }, { i: '8', j: 0 }, { i: '9', j: 0 }, { i: '10', j: 0 }, { i: '11', j: 0 }, { i: '12', j: 0 }, { i: '13', j: 0 }, { i: '14', j: 0 }, { i: '15', j: 0 }, { i: '16', j: 0 }, { i: '17', j: 0 }, { i: '18', j: 0 }, { i: '19', j: 0 }, { i: '20', j: 0 }, { i: '21', j: 0 }, { i: '22', j: 0 }, { i: '23', j: 0 }, { i: '24', j: 0 }, { i: '25', j: 0 }, { i: '26', j: 0 }, { i: '27', j: 0 }, { i: '32', j: 0 }, { i: '29', j: 0 }, { i: '30', j: 0 }, { i: '31', j: 0 }, { i: '33', j: 0 },  ], css_id: 'tinytable_css_sigscxaexvpxv1peicoq',}, 
+          { positions: [ { i: '0', j: 0 },  ], css_id: 'tinytable_css_qj7sj7dzyqxtffgidada',}, 
+          ];
+
+          // Loop over the arrays to style the cells
+          cellsToStyle.forEach(function (group) {
+              group.positions.forEach(function (cell) {
+                  styleCell_4eprtprcjwaxn0j2bv3n(cell.i, cell.j, group.css_id);
+              });
+          });
+      });
+    </script>
+
+    <style>
+      /* tinytable css entries after */
+      .table td.tinytable_css_xetnn7r6qm47etwfa8nu, .table th.tinytable_css_xetnn7r6qm47etwfa8nu { text-align: center; border-bottom: solid #d3d8dc 0.1em; }
+      .table td.tinytable_css_vxa3phhote2aqs9x426u, .table th.tinytable_css_vxa3phhote2aqs9x426u { text-align: center; border-bottom: solid black 0.05em; }
+      .table td.tinytable_css_64riim6v1y634a9slpsw, .table th.tinytable_css_64riim6v1y634a9slpsw { text-align: center; }
+      .table td.tinytable_css_7a1l6xdctsxj7n5l9ojh, .table th.tinytable_css_7a1l6xdctsxj7n5l9ojh { text-align: center; border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+      .table td.tinytable_css_6ygiklh20igk0r9jyfbf, .table th.tinytable_css_6ygiklh20igk0r9jyfbf { text-align: left; border-bottom: solid #d3d8dc 0.1em; }
+      .table td.tinytable_css_wd449m6iuosrypv6glnv, .table th.tinytable_css_wd449m6iuosrypv6glnv { text-align: left; border-bottom: solid black 0.05em; }
+      .table td.tinytable_css_sigscxaexvpxv1peicoq, .table th.tinytable_css_sigscxaexvpxv1peicoq { text-align: left; }
+      .table td.tinytable_css_qj7sj7dzyqxtffgidada, .table th.tinytable_css_qj7sj7dzyqxtffgidada { text-align: left; border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+    </style>
+    <div class="container">
+      <table class="table table-borderless" id="tinytable_4eprtprcjwaxn0j2bv3n" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
+        <thead>
+        
+              <tr>
+                <th scope="col" data-row="0" data-col="0"> </th>
+                <th scope="col" data-row="0" data-col="1">Model 1: Simple-education</th>
+                <th scope="col" data-row="0" data-col="2">Model 2: District controls</th>
+                <th scope="col" data-row="0" data-col="3">Model 2a: District controls</th>
+                <th scope="col" data-row="0" data-col="4">Model 3: + Individual controls(age)</th>
+                <th scope="col" data-row="0" data-col="5">Model 3a: + Individual controls(seniority)</th>
+              </tr>
+        </thead>
+        <tfoot><tr><td colspan='6'>+ p < 0.1, * p < 0.05, ** p < 0.01, *** p < 0.001</td></tr></tfoot>
+        <tbody>
+                <tr>
+                  <td data-row="1" data-col="0">(Intercept)</td>
+                  <td data-row="1" data-col="1">0.679***</td>
+                  <td data-row="1" data-col="2">0.467</td>
+                  <td data-row="1" data-col="3">0.307</td>
+                  <td data-row="1" data-col="4">0.692</td>
+                  <td data-row="1" data-col="5">0.491</td>
+                </tr>
+                <tr>
+                  <td data-row="2" data-col="0"></td>
+                  <td data-row="2" data-col="1">(0.200)</td>
+                  <td data-row="2" data-col="2">(0.435)</td>
+                  <td data-row="2" data-col="3">(0.417)</td>
+                  <td data-row="2" data-col="4">(0.841)</td>
+                  <td data-row="2" data-col="5">(0.622)</td>
+                </tr>
+                <tr>
+                  <td data-row="3" data-col="0">black_or_african_american_ratio</td>
+                  <td data-row="3" data-col="1">−1.674*</td>
+                  <td data-row="3" data-col="2">−1.397+</td>
+                  <td data-row="3" data-col="3">−1.446+</td>
+                  <td data-row="3" data-col="4">−1.671*</td>
+                  <td data-row="3" data-col="5">−1.886*</td>
+                </tr>
+                <tr>
+                  <td data-row="4" data-col="0"></td>
+                  <td data-row="4" data-col="1">(0.725)</td>
+                  <td data-row="4" data-col="2">(0.788)</td>
+                  <td data-row="4" data-col="3">(0.761)</td>
+                  <td data-row="4" data-col="4">(0.826)</td>
+                  <td data-row="4" data-col="5">(0.834)</td>
+                </tr>
+                <tr>
+                  <td data-row="5" data-col="0">factor(congress)116</td>
+                  <td data-row="5" data-col="1">−0.600*</td>
+                  <td data-row="5" data-col="2">−0.660**</td>
+                  <td data-row="5" data-col="3">−0.639**</td>
+                  <td data-row="5" data-col="4">−0.634*</td>
+                  <td data-row="5" data-col="5">−0.635**</td>
+                </tr>
+                <tr>
+                  <td data-row="6" data-col="0"></td>
+                  <td data-row="6" data-col="1">(0.233)</td>
+                  <td data-row="6" data-col="2">(0.238)</td>
+                  <td data-row="6" data-col="3">(0.236)</td>
+                  <td data-row="6" data-col="4">(0.248)</td>
+                  <td data-row="6" data-col="5">(0.246)</td>
+                </tr>
+                <tr>
+                  <td data-row="7" data-col="0">factor(congress)117</td>
+                  <td data-row="7" data-col="1">−2.171***</td>
+                  <td data-row="7" data-col="2">−2.282***</td>
+                  <td data-row="7" data-col="3">−2.267***</td>
+                  <td data-row="7" data-col="4">−2.528***</td>
+                  <td data-row="7" data-col="5">−2.559***</td>
+                </tr>
+                <tr>
+                  <td data-row="8" data-col="0"></td>
+                  <td data-row="8" data-col="1">(0.304)</td>
+                  <td data-row="8" data-col="2">(0.317)</td>
+                  <td data-row="8" data-col="3">(0.311)</td>
+                  <td data-row="8" data-col="4">(0.336)</td>
+                  <td data-row="8" data-col="5">(0.336)</td>
+                </tr>
+                <tr>
+                  <td data-row="9" data-col="0">factor(congress)118</td>
+                  <td data-row="9" data-col="1">−1.510***</td>
+                  <td data-row="9" data-col="2">−1.663***</td>
+                  <td data-row="9" data-col="3">−1.610***</td>
+                  <td data-row="9" data-col="4">−1.676***</td>
+                  <td data-row="9" data-col="5">−1.727***</td>
+                </tr>
+                <tr>
+                  <td data-row="10" data-col="0"></td>
+                  <td data-row="10" data-col="1">(0.261)</td>
+                  <td data-row="10" data-col="2">(0.290)</td>
+                  <td data-row="10" data-col="3">(0.270)</td>
+                  <td data-row="10" data-col="4">(0.285)</td>
+                  <td data-row="10" data-col="5">(0.283)</td>
+                </tr>
+                <tr>
+                  <td data-row="11" data-col="0">median_household_income_that_year</td>
+                  <td data-row="11" data-col="1"></td>
+                  <td data-row="11" data-col="2">0.000</td>
+                  <td data-row="11" data-col="3"></td>
+                  <td data-row="11" data-col="4"></td>
+                  <td data-row="11" data-col="5"></td>
+                </tr>
+                <tr>
+                  <td data-row="12" data-col="0"></td>
+                  <td data-row="12" data-col="1"></td>
+                  <td data-row="12" data-col="2">(0.000)</td>
+                  <td data-row="12" data-col="3"></td>
+                  <td data-row="12" data-col="4"></td>
+                  <td data-row="12" data-col="5"></td>
+                </tr>
+                <tr>
+                  <td data-row="13" data-col="0">foreign_born_ratio</td>
+                  <td data-row="13" data-col="1"></td>
+                  <td data-row="13" data-col="2">−1.836*</td>
+                  <td data-row="13" data-col="3">−1.679+</td>
+                  <td data-row="13" data-col="4">−1.635</td>
+                  <td data-row="13" data-col="5">−1.591</td>
+                </tr>
+                <tr>
+                  <td data-row="14" data-col="0"></td>
+                  <td data-row="14" data-col="1"></td>
+                  <td data-row="14" data-col="2">(0.933)</td>
+                  <td data-row="14" data-col="3">(0.892)</td>
+                  <td data-row="14" data-col="4">(1.029)</td>
+                  <td data-row="14" data-col="5">(1.028)</td>
+                </tr>
+                <tr>
+                  <td data-row="15" data-col="0">agriculture_share</td>
+                  <td data-row="15" data-col="1"></td>
+                  <td data-row="15" data-col="2">1.065</td>
+                  <td data-row="15" data-col="3">3.924</td>
+                  <td data-row="15" data-col="4">2.307</td>
+                  <td data-row="15" data-col="5">2.295</td>
+                </tr>
+                <tr>
+                  <td data-row="16" data-col="0"></td>
+                  <td data-row="16" data-col="1"></td>
+                  <td data-row="16" data-col="2">(7.897)</td>
+                  <td data-row="16" data-col="3">(8.168)</td>
+                  <td data-row="16" data-col="4">(8.305)</td>
+                  <td data-row="16" data-col="5">(8.263)</td>
+                </tr>
+                <tr>
+                  <td data-row="17" data-col="0">high_edu_share</td>
+                  <td data-row="17" data-col="1"></td>
+                  <td data-row="17" data-col="2"></td>
+                  <td data-row="17" data-col="3">1.801*</td>
+                  <td data-row="17" data-col="4">1.312</td>
+                  <td data-row="17" data-col="5">1.368</td>
+                </tr>
+                <tr>
+                  <td data-row="18" data-col="0"></td>
+                  <td data-row="18" data-col="1"></td>
+                  <td data-row="18" data-col="2"></td>
+                  <td data-row="18" data-col="3">(0.906)</td>
+                  <td data-row="18" data-col="4">(0.952)</td>
+                  <td data-row="18" data-col="5">(0.957)</td>
+                </tr>
+                <tr>
+                  <td data-row="19" data-col="0">ideology</td>
+                  <td data-row="19" data-col="1"></td>
+                  <td data-row="19" data-col="2"></td>
+                  <td data-row="19" data-col="3"></td>
+                  <td data-row="19" data-col="4">−1.963*</td>
+                  <td data-row="19" data-col="5">−1.603+</td>
+                </tr>
+                <tr>
+                  <td data-row="20" data-col="0"></td>
+                  <td data-row="20" data-col="1"></td>
+                  <td data-row="20" data-col="2"></td>
+                  <td data-row="20" data-col="3"></td>
+                  <td data-row="20" data-col="4">(0.821)</td>
+                  <td data-row="20" data-col="5">(0.839)</td>
+                </tr>
+                <tr>
+                  <td data-row="21" data-col="0">genderMale</td>
+                  <td data-row="21" data-col="1"></td>
+                  <td data-row="21" data-col="2"></td>
+                  <td data-row="21" data-col="3"></td>
+                  <td data-row="21" data-col="4">0.457*</td>
+                  <td data-row="21" data-col="5">0.443*</td>
+                </tr>
+                <tr>
+                  <td data-row="22" data-col="0"></td>
+                  <td data-row="22" data-col="1"></td>
+                  <td data-row="22" data-col="2"></td>
+                  <td data-row="22" data-col="3"></td>
+                  <td data-row="22" data-col="4">(0.197)</td>
+                  <td data-row="22" data-col="5">(0.198)</td>
+                </tr>
+                <tr>
+                  <td data-row="23" data-col="0">chambersenate</td>
+                  <td data-row="23" data-col="1"></td>
+                  <td data-row="23" data-col="2"></td>
+                  <td data-row="23" data-col="3"></td>
+                  <td data-row="23" data-col="4">0.350</td>
+                  <td data-row="23" data-col="5">0.238</td>
+                </tr>
+                <tr>
+                  <td data-row="24" data-col="0"></td>
+                  <td data-row="24" data-col="1"></td>
+                  <td data-row="24" data-col="2"></td>
+                  <td data-row="24" data-col="3"></td>
+                  <td data-row="24" data-col="4">(0.228)</td>
+                  <td data-row="24" data-col="5">(0.232)</td>
+                </tr>
+                <tr>
+                  <td data-row="25" data-col="0">age</td>
+                  <td data-row="25" data-col="1"></td>
+                  <td data-row="25" data-col="2"></td>
+                  <td data-row="25" data-col="3"></td>
+                  <td data-row="25" data-col="4">0.001</td>
+                  <td data-row="25" data-col="5"></td>
+                </tr>
+                <tr>
+                  <td data-row="26" data-col="0"></td>
+                  <td data-row="26" data-col="1"></td>
+                  <td data-row="26" data-col="2"></td>
+                  <td data-row="26" data-col="3"></td>
+                  <td data-row="26" data-col="4">(0.008)</td>
+                  <td data-row="26" data-col="5"></td>
+                </tr>
+                <tr>
+                  <td data-row="27" data-col="0">seniority</td>
+                  <td data-row="27" data-col="1"></td>
+                  <td data-row="27" data-col="2"></td>
+                  <td data-row="27" data-col="3"></td>
+                  <td data-row="27" data-col="4"></td>
+                  <td data-row="27" data-col="5">0.017+</td>
+                </tr>
+                <tr>
+                  <td data-row="28" data-col="0"></td>
+                  <td data-row="28" data-col="1"></td>
+                  <td data-row="28" data-col="2"></td>
+                  <td data-row="28" data-col="3"></td>
+                  <td data-row="28" data-col="4"></td>
+                  <td data-row="28" data-col="5">(0.010)</td>
+                </tr>
+                <tr>
+                  <td data-row="29" data-col="0">Num.Obs.</td>
+                  <td data-row="29" data-col="1">594</td>
+                  <td data-row="29" data-col="2">594</td>
+                  <td data-row="29" data-col="3">594</td>
+                  <td data-row="29" data-col="4">572</td>
+                  <td data-row="29" data-col="5">572</td>
+                </tr>
+                <tr>
+                  <td data-row="30" data-col="0">AIC</td>
+                  <td data-row="30" data-col="1">720.4</td>
+                  <td data-row="30" data-col="2">721.8</td>
+                  <td data-row="30" data-col="3">719.7</td>
+                  <td data-row="30" data-col="4">687.2</td>
+                  <td data-row="30" data-col="5">684.2</td>
+                </tr>
+                <tr>
+                  <td data-row="31" data-col="0">BIC</td>
+                  <td data-row="31" data-col="1">742.3</td>
+                  <td data-row="31" data-col="2">756.9</td>
+                  <td data-row="31" data-col="3">754.8</td>
+                  <td data-row="31" data-col="4">739.4</td>
+                  <td data-row="31" data-col="5">736.4</td>
+                </tr>
+                <tr>
+                  <td data-row="32" data-col="0">Log.Lik.</td>
+                  <td data-row="32" data-col="1">−355.199</td>
+                  <td data-row="32" data-col="2">−352.904</td>
+                  <td data-row="32" data-col="3">−351.874</td>
+                  <td data-row="32" data-col="4">−331.597</td>
+                  <td data-row="32" data-col="5">−330.124</td>
+                </tr>
+                <tr>
+                  <td data-row="33" data-col="0">F</td>
+                  <td data-row="33" data-col="1">17.443</td>
+                  <td data-row="33" data-col="2">10.333</td>
+                  <td data-row="33" data-col="3">10.548</td>
+                  <td data-row="33" data-col="4">7.397</td>
+                  <td data-row="33" data-col="5">7.505</td>
+                </tr>
+                <tr>
+                  <td data-row="34" data-col="0">RMSE</td>
+                  <td data-row="34" data-col="1">0.45</td>
+                  <td data-row="34" data-col="2">0.45</td>
+                  <td data-row="34" data-col="3">0.45</td>
+                  <td data-row="34" data-col="4">0.45</td>
+                  <td data-row="34" data-col="5">0.44</td>
+                </tr>
+        </tbody>
+      </table>
+    </div>
+<!-- postamble start -->
+  </body>
+
+</html>
+<!-- postamble end -->
+<!-- hack to avoid NA insertion in last line -->
