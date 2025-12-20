@@ -1,0 +1,4662 @@
+---
+title: "data_mining"
+author: "Kunya Zhan"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+format: 
+  html:
+   toc: true
+   toc-depth: 3
+   number-sections: true
+   code-fold: true
+   code-summary: "Show/Hide Code"
+   smooth-scroll: true
+   df-print: paged
+   code-tools: true
+   highlight-style: atom-one
+   toc-location: left
+editor: visual
+---
+
+# Data Mining
+
+This quarto document reorganizes the analyses from *descriptive analysis 1021.Rmd*, focusing on data mining and pattern discovery in the *decodeCompetition dataset*. It consists two main sections:
+
+1.  **Data Mining**: exploration of the original dataset to identify salient patterns and cross-party differences;
+2.  **Model-based analysis:** identification of key characteristics through regression and logistic models.
+
+## Packages Installing if not already installed
+
+```{r}
+#| label: install_libraries
+#| echo: false
+#| message: false
+#| warning: false
+
+# 设置默认 CRAN 源，防止未指定镜像导致 install.packages 报错
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# 所需包列表
+packages <- c(
+  "Rcpp", "dplyr", "stringr", "readr", "ggplot2", "tidyr", "readxl", "scales", 
+  "showtext", "sysfonts", "skimr", "plm", "car", "glmnet", 
+  "Rtsne", "networkD3", "cluster", "factoextra", "pROC", "lme4", 
+  "MuMIn", "nnet", "DHARMa", "tigris", "ggeffects", "stargazer",
+  "htmltools", "tidyverse", "ggcorrplot", "purrr", "broom.mixed", 
+  "performance", "lattice", "fmsb", "kableExtra", "broom", 
+  "knitr", "ggnewscale", "modelsummary", "pscl", "ggfortify", 
+  "rlang", "patchwork", "segmented", "tidytext", "mgcv", "splines", 
+  "interactions", "RColorBrewer", "cowplot", "ggbreak", "randomcoloR",
+  "marginaleffects", "ggrepel", "grid","here"
+)
+
+# Install only if missing
+for (pkg in packages) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg)
+  }
+}
+
+# Load all packages
+lapply(packages, library, character.only = TRUE)
+```
+
+## set up
+
+```{r}
+#| label: setup
+#| include: false
+
+# ---- Prevent Mac from sleeping during long render ----
+system("caffeinate -dimsu &")
+on.exit(system("killall caffeinate"), add = TRUE)
+cat("☕ macOS sleep prevention active for this Quarto render...\n")
+
+
+# ---- Create a unified output directory ----
+output_dir <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/data_mining_output"
+fig_dir <- file.path(output_dir, "figures")
+cache_dir <- file.path(output_dir, "cache")
+
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.path = fig_dir,
+  cache.path = cache_dir
+)
+
+# A helper function to save plots/data consistently
+save_to_output <- function(filename, plot = NULL, ...) {
+  full_path <- file.path(output_dir, filename)
+  
+  dir.create(dirname(full_path), recursive = TRUE, showWarnings = FALSE)
+  
+  if (!is.null(plot)) {
+    ggplot2::ggsave(full_path, plot = plot, ...)
+    message("✅ Saved plot to: ", full_path)
+  } else {
+    message("⚠️ No plot provided. Returning path only: ", full_path)
+  }
+  
+  return(full_path)
+}
+```
+
+# 1. Data cleansing
+
+## 1.1 data acquisition
+
+```{r}
+#| label: load_data
+#| echo: false
+#| message: false
+#| warning: false
+
+# ----- main databases -----
+
+legis_sum_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/LightGBM_output_1022/legis_analysis_sum.xlsx"
+
+legis_sum <- read_excel(legis_sum_path)
+
+legis_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/LightGBM_output_1022/legis_analysis_all.xlsx"
+
+legis_all <- read_excel(legis_path)
+
+legis_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/LightGBM_output_1022/legis_train_data.csv")
+
+
+# ----- supplementary databases -----
+bioguide_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/members_district_1103.xlsx"
+bioguide <- read_excel(bioguide_path)
+
+# ideology
+ideology_115_senate <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2018-senate-ideology.csv")
+ideology_115_house <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2018-house-ideology.csv")
+ideology_116_senate <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2020-senate-ideology.csv")
+ideology_116_house <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2020-house-ideology.csv")
+ideology_117_senate <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2022-senate-ideology.csv")
+ideology_117_house <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2022-house-ideology.csv")
+ideology_118_senate <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2024-senate-ideology.csv")
+ideology_118_house <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/new ideology/govtrack-stats-2024-house-ideology.csv")
+
+
+# original legislative data
+bills_data_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/LightGBM_raw/115-118_congress_data.csv"
+bills_data <- read_csv(bills_data_path)
+
+
+# constituency_features
+district_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/constituency_features/constituency_features.csv")
+```
+
+## 1.2 matching variables and special patch
+
+```{r}
+#| label: matching variables 
+#| echo: false
+
+# ------ matching variables map ------
+match_vars <- c(
+  "leverage_pl", "leverage_ne", "committee_pl", "committee_ne",
+  "employ_industry_pl", "employ_industry_ne",
+  "payroll_industry_pl", "payroll_industry_ne",
+  "ethnicity_pl", "ethnicity_ne",
+  "party_value_pl", "party_value_ne",
+  "party_score_pl", "party_score_ne"
+)
+
+# ------ Add raw columns ------
+legis_data_raw <- legis_data %>%
+  rename_with(.cols = all_of(match_vars), .fn = ~ paste0(.x, "_raw"))
+legis_all <- legis_all %>%
+  left_join(
+    legis_data_raw %>% dplyr::select(full_name, issue, congress, ends_with("_raw")),
+    by = c("full_name", "issue", "congress")
+  )
+
+
+# ------ Sanity check ------
+stopifnot(all(paste0(match_vars, "_raw") %in% names(legis_all)))
+```
+
+#### special clean for legis_sum and legis data
+
+```{r}
+#| label: special clean for legis
+#| echo: false
+
+legis_data <- legis_data %>%
+  mutate(issue = str_to_title(issue))
+
+legis_sum <- legis_sum %>%
+  mutate(issue = str_to_title(issue))
+```
+
+## 1.3 name cleansing
+
+### 1.3.1 preparing bioguide as matching map
+
+name cleansing: addressing issues that some full_name are missing
+
+```{r}
+#| label: name missing check in congress_basic
+#| echo: false
+congress_basic <- bioguide %>%
+  dplyr::select(
+    bioguide_id, full_name, direct_order_name, chamber, member_type,
+    party, state_name, state_code, district, gender,
+    birth_year, death_year, congress
+  ) %>%
+  distinct() 
+
+# ---- check missing full_name inside bioguide ----
+missing_name_df <- congress_basic %>%
+  filter(is.na(full_name) | full_name == "") %>%
+  dplyr::select(bioguide_id, direct_order_name, chamber, state_code, district, party, congress) %>%
+  arrange(chamber, state_code, district)
+
+write_csv(missing_name_df, "missing_name_df.csv")
+```
+
+```{r}
+#| label: clean_name_bioguide_before
+#| echo: false
+
+# ------ Step 0: Create direct_order_name -> full_name mapping ------
+name_map <- tibble::tibble(
+  direct_order_name = c(
+    "Mike Rogers", "J. French Hill", "Dave Min", "Cory Mills",
+    "Marjorie Taylor Greene", "David P. Joyce", "Michael Baumgartner",
+    "Mark  Begich", "Richard C. Shelby", "Mark Udall", "Chuck Grassley",
+    "Daniel Coats", "Joe Donnelly", "Pat Roberts", "Rand Paul", "David Vitter",
+    "Carl Levin", "Al  Franken", "Claire McCaskill", "Richard Burr",
+    "John Hoeven", "Heidi  Heitkamp", "Kelly Ayotte", "Dean Heller",
+    "Rob Portman", "Ron Wyden", "Jack Reed", "Sheldon Whitehouse",
+    "Lindsey Graham", "Tim Johnson", "Bob Corker"
+  ),
+  full_name = c(
+    "Rep. Rogers, Mike [R-AL-3]", "Rep. Hill, J. French [R-AR-2]",
+    "Rep. Min, Dave [D-CA-47]", "Rep. Mills, Cory [R-FL-7]",
+    "Rep. Greene, Marjorie Taylor [R-GA-14]", "Rep. Joyce, David P. [R-OH-14]",
+    "Rep. Baumgartner, Michael [R-WA-5]", "Sen. Begich, Mark [D-AK]",
+    "Sen. Shelby, Richard C. [R-AL]", "Sen. Udall, Mark [D-CO]",
+    "Sen. Grassley, Charles E. [R-IA]", "Sen. Coats, Daniel R. [R-IN]",
+    "Sen. Donnelly, Joe [D-IN]", "Sen. Roberts, Patrick J. [R-KS]",
+    "Sen. Paul, Randal H. [R-KY]", "Sen. Vitter, David [R-LA]",
+    "Sen. Levin, Carl [D-MI]", "Sen. Franken, Al [D-MN]",
+    "Sen. McCaskill, Claire [D-MO]", "Sen. Burr, Richard [R-NC]",
+    "Sen. Hoeven, John [R-ND]", "Sen. Heitkamp, Heidi [D-ND]",
+    "Sen. Ayotte, Kelly [R-NH]", "Sen. Heller, Dean [R-NV]",
+    "Sen. Portman, Robert J. [R-OH]", "Sen. Wyden, Ronald [D-OR]",
+    "Sen. Reed, Jack [D-RI]", "Sen. Whitehouse, Sheldon [D-RI]",
+    "Sen. Graham, Lindsey [R-SC]", "Sen. Johnson, Timothy M. [D-SD]",
+    "Sen. Corker, Robert P. [R-TN]"
+  )
+)
+missing_name_df <- missing_name_df %>%
+  left_join(name_map, by = "direct_order_name")
+
+# ------ Step 1: Define helper to clean names ------
+clean_names <- function(x) {
+  x %>%
+    stringr::str_replace_all("\\p{Zs}+", " ") %>%
+    stringr::str_squish() %>%
+    stringr::str_trim() %>%
+    stringr::str_to_lower()
+}
+
+congress_basic <- congress_basic %>%
+  mutate(direct_order_name_clean = clean_names(direct_order_name))
+missing_name_df <- missing_name_df %>%
+  mutate(direct_order_name_clean = clean_names(direct_order_name))
+
+# ------ Step 2: Fill missing full_name using mapping ------
+congress_basic <- congress_basic %>%
+  left_join(
+    missing_name_df %>% dplyr::select(direct_order_name_clean, full_name) %>% distinct(),
+    by = "direct_order_name_clean"
+  ) %>%
+  mutate(full_name = ifelse(is.na(full_name.x), full_name.y, full_name.x)) %>%
+  dplyr::select(-ends_with(".x"), -ends_with(".y"), -direct_order_name_clean)
+
+# Verify no missing names remain
+cat("Number of remaining missing full_name:", sum(is.na(congress_basic$full_name)), "\n")
+```
+
+district cleansing: matching district code in main databases
+
+```{r}
+#| label: clean district
+#| echo: false
+congress_basic <- congress_basic %>%
+  mutate(
+    district = as.character(district),
+    district = case_when(
+      is.na(district) & chamber == "Senate" ~ "99",
+      is.na(district) & chamber == "House of Representatives" ~ "At Large",
+      TRUE ~ district
+    )
+  )
+```
+
+age cleansing: create age_to_date to match ages in main database and prepare age_to_congress to replace ages in main databases
+
+```{r}
+#| label: clean age
+#| echo: false
+# ------ delete 119th congress data  ------
+congress_basic <- congress_basic %>%
+  filter(congress != 119)
+
+# ------ Define congress start years ------
+congress_year_map <- tibble(
+  congress = c(115, 116, 117, 118),
+  congress_start_year = c(2017, 2019, 2021, 2023)
+)
+
+# ------ Compute ages ------
+congress_basic <- congress_basic %>%
+  # Join start year info
+  left_join(congress_year_map, by = "congress") %>%
+  
+  # Compute age
+  mutate(
+    age_to_date = 2025 - birth_year,
+    age_to_congress = congress_start_year - birth_year,
+    
+    # Handle missing birth_year
+    age_to_date = if_else(!is.na(birth_year), age_to_date, NA_real_),
+    age_to_congress = if_else(!is.na(birth_year) & !is.na(congress_start_year),
+                              age_to_congress, NA_real_)
+  )
+cat("✅ Age calculation completed.\n")
+```
+
+### 1.3.2 name cleansing legis_sum and special patches
+
+main database name extracting
+
+```{r}
+#| label: name extracting
+#| echo: false
+
+legis_sum0 <- legis_sum %>%
+  mutate(
+    name_no_title = str_remove(full_name, "^\\s*(Sen\\.|Rep\\.|Del\\.)\\s*"),
+    name_clean = str_remove(name_no_title, "\\s*\\[.*\\]") %>% str_squish(),
+    eng_name = str_replace(name_clean, "^([^,]+),\\s*(.+)$", "\\2 \\1")
+  ) %>%
+  dplyr::select(-name_no_title, -name_clean)
+legis_sum0$congress <- as.character(legis_sum0$congress)
+
+# matching variable name in congress_basic
+congress_basic <- congress_basic %>% rename(eng_name = direct_order_name)
+```
+
+#### \* special patches
+
+The database has a override problem with some congress members. For example, Sen. Blunt Rochester, Lisa \[D-DE\] was elected as senator in 119th congress, but the database mistakebly override her information before as senator, while she was a representative. Those who are identified will be corrected as a special path in this chuck.
+
+special patch1: patch for "Sen. Blunt Rochester, Lisa \[D-DE\]"
+
+```{r}
+#| label: patch_blunt_rochester
+#| echo: false
+
+# 定义修补目标
+patch_name <- "Sen. Blunt Rochester, Lisa [D-DE]"
+patch_congress <- 118  # 可选：指定届次，确保唯一定位
+new_chamber <- "House of Representatives"
+new_district <- "At Large"
+
+# ---- Step 1: 精确锁定匹配对象 ----
+target_legis <- legis_sum0 %>%
+  filter(full_name == patch_name) %>%
+  distinct(full_name, congress)
+
+
+# ---- Step 2: 安全更新函数 ----
+safe_patch <- function(df, name, congress = NULL, new_chamber, new_district) {
+  df %>%
+    mutate(
+      chamber = case_when(
+        !is.na(full_name) &
+          full_name == name &
+          (is.null(congress) | .data$congress == congress) ~ new_chamber,
+        TRUE ~ chamber
+      ),
+      district = case_when(
+        !is.na(full_name) &
+          full_name == name &
+          (is.null(congress) | .data$congress == congress) ~ new_district,
+        TRUE ~ district
+      )
+    )
+}
+
+# ---- Step 3: 应用更新 ----
+legis_sum0 <- safe_patch(legis_sum0, patch_name, patch_congress, new_chamber, new_district)
+
+# ---- Step 4: 检查结果 ----
+legis_sum0 %>% 
+  filter(full_name == patch_name) %>%
+  dplyr::select(full_name, congress, chamber, district)
+
+```
+
+special patch2: for congressmen "Sen. Menendez, Robert \[D-NJ\]" and "Rep. Menendez, Robert \[D-NJ-8\]", since they have different eng_name but extracting from full_name cannot automatically discern the difference
+
+```{r}
+#| label: special_clean_menendez
+#| echo: false
+special_clean_menendez <- function(df) {
+  df <- df %>%
+    mutate(
+      eng_name = case_when(
+        # Senator Robert Menendez (NJ, district 99 or 0)
+        full_name == "Sen. Menendez, Robert [D-NJ]" |
+        (state_code == "NJ" & district %in% c(99, 0) & str_detect(full_name, "Menendez")) ~ "Bob Menendez",
+        
+        # Representative Robert Menendez (NJ-8)
+        full_name == "Rep. Menendez, Robert [D-NJ-8]" |
+        (state_code == "NJ" & district == 8 & str_detect(full_name, "Menendez")) ~ "Rob Menendez",
+        
+        TRUE ~ eng_name
+      )
+    )
+  return(df)
+}
+
+# Apply the special cleaning function
+congress_basic <- special_clean_menendez(congress_basic)
+legis_sum0 <- special_clean_menendez(legis_sum0)
+```
+
+### 1.3.3 name mapping
+
+```{r}
+#| label: check name missing in main data
+#| echo: false
+
+# try to use congress+party+chamber+state_code+district as mapping key
+legis_name_check <- legis_sum0 %>%
+  filter(is.na(full_name)) %>%
+  group_by(congress, party, chamber, state_code, district) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  arrange(desc(n)) # missing == 0, clean
+
+```
+
+define name matching function
+
+```{r}
+#| label: match_bioguide
+#| echo: false
+
+# ------ Function: Match bioguide_id based on name and district info ------
+normalize_name <- function(name) {
+  name %>%
+    tolower() %>%
+    str_replace_all("\\.", "") %>%     # 删除句点
+    str_trim() %>%
+    str_replace_all("\\s+", " ")       # 去多余空格
+}
+
+# ---- 辅助函数：去除中间名，只保留名 + 姓 ----
+remove_middle_name <- function(name) {
+  name %>%
+    str_trim() %>%
+    str_split_fixed(" ", n = 3) %>%
+    .[, c(1, 2)] %>%
+    apply(1, function(x) paste(na.omit(x), collapse = " ")) %>%
+    str_trim()
+}
+
+# ---- 主函数 ----
+match_bioguide_id <- function(main_df, congress_basic, 
+                              use_step3 = TRUE, 
+                              use_step4 = TRUE,
+                              verbose = TRUE) {
+  
+  total_n <- nrow(main_df)
+  
+  # ---- Step 0: 初始化 bioguide_id ----
+  main_df <- main_df %>% 
+    mutate(bioguide_id = NA_character_)
+  
+  # ---- Step 1: full_name + congress 匹配 ----
+  tmp1 <- congress_basic %>%
+    group_by(full_name, congress) %>%
+    slice(1) %>%
+    ungroup() %>%
+    dplyr::select(full_name, congress, bioguide_id1 = bioguide_id)
+  
+  main_df <- main_df %>%
+    left_join(tmp1, by = c("full_name", "congress" = "congress")) %>%
+    mutate(bioguide_id = coalesce(bioguide_id, bioguide_id1)) %>%
+    dplyr::select(-bioguide_id1)
+  
+  if (verbose) cat("Step 1 matched:", sum(!is.na(main_df$bioguide_id)), "/", total_n, "\n")
+  
+  # ---- Step 2: eng_name + congress 匹配 ----
+  tmp2 <- congress_basic %>%
+    group_by(eng_name, congress) %>%
+    slice(1) %>%
+    ungroup() %>%
+    dplyr::select(eng_name, congress, bioguide_id2 = bioguide_id)
+  
+  main_df <- main_df %>%
+    left_join(tmp2, by = c("eng_name", "congress" = "congress")) %>%
+    mutate(bioguide_id = coalesce(bioguide_id, bioguide_id2)) %>%
+    dplyr::select(-bioguide_id2)
+  
+  if (verbose) cat("Step 2 matched:", sum(!is.na(main_df$bioguide_id)), "/", total_n, "\n")
+  
+  # ---- Step 3（可选）: 使用稳定 key 匹配 bioguide_id ----
+  if (use_step3) {
+    main_df <- main_df %>%
+      mutate(id_key = paste(congress, party, chamber, state_code, district, sep = "_"))
+    
+    congress_basic <- congress_basic %>%
+      mutate(id_key = paste(congress, party, chamber, state_code, district, sep = "_"))
+    
+    tmp3 <- congress_basic %>%
+      group_by(id_key) %>%
+      slice(1) %>%
+      ungroup() %>%
+      dplyr::select(id_key, bioguide_id3 = bioguide_id, full_name3 = full_name)
+    
+    n_before <- nrow(main_df)
+    
+    main_df <- main_df %>%
+      left_join(tmp3, by = "id_key", relationship = "many-to-one") %>%
+      mutate(
+        bioguide_id = coalesce(bioguide_id, bioguide_id3),
+        full_name   = if_else(!is.na(bioguide_id3), full_name3, full_name)
+      ) %>%
+      dplyr::select(-bioguide_id3, -full_name3, -id_key)
+    
+    stopifnot(nrow(main_df) == n_before)
+    
+    if (verbose) cat("Step 3 (stable key) matched:", sum(!is.na(main_df$bioguide_id)), "/", total_n, "\n")
+    
+    dupli_keys <- tmp3 %>% count(id_key) %>% filter(n > 1)
+    if (nrow(dupli_keys) > 0) {
+      warning("⚠️ Warning: duplicate id_key found in congress_basic, may cause ambiguous match.")
+    }
+  }
+  
+  # ---- Step 4（可选）: eng_name only (normalize + 去中间名) ----
+  if (use_step4) {
+    # 标准化并去除中间名
+    congress_basic <- congress_basic %>%
+      mutate(eng_name_clean = normalize_name(eng_name) %>% remove_middle_name())
+    
+    main_df <- main_df %>%
+      mutate(eng_name_clean = normalize_name(eng_name) %>% remove_middle_name())
+    
+    tmp4 <- congress_basic %>%
+      group_by(eng_name_clean) %>%
+      slice(1) %>%
+      ungroup() %>%
+      dplyr::select(eng_name_clean, full_name4 = full_name, bioguide_id4 = bioguide_id)
+    
+    main_df <- main_df %>%
+      left_join(tmp4, by = "eng_name_clean") %>%
+      mutate(
+        bioguide_id = coalesce(bioguide_id, bioguide_id4),
+        full_name   = if_else(!is.na(bioguide_id4), full_name4, full_name)
+      ) %>%
+      dplyr::select(-bioguide_id4, -full_name4, -eng_name_clean)
+    
+    if (verbose) cat("Step 4 (normalized + middle name removed) matched:", sum(!is.na(main_df$bioguide_id)), "/", total_n, "\n")
+  }
+  
+  # ---- Step 5: 输出总结 ----
+  if (verbose) {
+    cat("✅ Bioguide ID matching complete.\n")
+    cat("Remaining NA bioguide_id:", sum(is.na(main_df$bioguide_id)), "\n")
+  }
+  
+  return(main_df)
+}
+
+# ------ Apply function to datasets ------
+congress_basic$congress <- as.character(congress_basic$congress)
+
+legis_sum1 <- match_bioguide_id(legis_sum0, congress_basic, use_step3 = FALSE, use_step4 = TRUE)
+
+# Update final datasets
+# legis_sum <- legis_sum1
+
+# 查看legis缺失
+legis_missing <- legis_sum1 %>% 
+  filter(is.na(bioguide_id)) %>%
+  distinct(full_name, .keep_all = FALSE) %>%
+  arrange(full_name)
+save_to_output("legis_missing_fullname_list.csv", data = legis_missing)
+
+```
+
+```{r}
+#| label: further addressing missing bioguide
+#| echo: false
+
+bioguide_map <- tibble(
+  name = c(
+    "David Joyce",
+    "J. Hill",
+    "John Reed",
+    "Marjorie Greene",
+    "Rep. Bishop, Sanford D., Jr. [D-GA-2]",
+    "Rep. Conyers, John, Jr. [D-MI-13]",
+    "Rep. Garcia, Jesus G. \"Chuy\" [D-IL-4]",
+    "Rep. Kennedy, Joseph P., III [D-MA-4]",
+    "Rep. Pallone, Frank, Jr. [D-NJ-6]",
+    "Rep. Pascrell, Bill, Jr. [D-NJ-9]",
+    "Rep. Payne, Donald M., Jr. [D-NJ-10]",
+    "Rep. Sensenbrenner, F. James, Jr. [R-WI-5]",
+    "Rep. Weber, Randy K., Sr. [R-TX-14]",
+    "Richard Shelby",
+    "Sen. Manchin, Joe, III [D-WV]",
+    "Rep. Ryan, Paul [R-WI-1]"
+  ),
+  bioguide_id = c(
+    "J000295",  # David Joyce
+    "H001072",  # French Hill
+    "R000122",  # Jack (John F.) Reed
+    "G000596",  # Marjorie Taylor Greene
+    "B000490",  # Sanford D. Bishop Jr.
+    "C000714",  # John Conyers, Jr.
+    "G000586",  # Jesús G. "Chuy" García
+    "K000379",  # Joseph P. Kennedy III
+    "P000034",  # Frank Pallone Jr.
+    "P000096",  # Bill Pascrell Jr.
+    "P000604",  # Donald M. Payne Jr.
+    "S000244",  # F. James Sensenbrenner
+    "W000814",  # Randy K. Weber
+    "S000320",  # Richard C. Shelby
+    "M001183",  # Joe Manchin
+    "R000570"   # Paul Ryan
+  )
+)
+
+legis_sum1 <- legis_sum1 %>%
+  # 用映射表左连接进来（把映射表的 bioguide_id 加入为 new_bioguide）
+  left_join(bioguide_map %>% rename(map_name = name, map_bioguide = bioguide_id),
+            by = c("full_name" = "map_name")) %>%
+
+  # 如果原表已有 bioguide_id，优先保留；否则使用映射表的值
+  mutate(
+    bioguide_id = coalesce(bioguide_id, map_bioguide)
+  ) %>%
+
+  # 清理临时列
+  dplyr::select(-map_bioguide)
+```
+
+address missing name issues
+
+```{r}
+#| label: missing name solution_before
+#| echo: false
+
+# ------ old_full_name -> new_full_name ------ 
+# name_map <- data.frame(
+#  old_full_name = c(
+#    "David Joyce",
+#    "J. Hill",
+#    "John Reed",
+#    "Marjorie Greene",
+#    "Richard Shelby"
+#  ),
+#  new_full_name = c(
+#    "Rep. Joyce, David P. [R-OH-14]",
+#    "Rep. Hill, J. French [R-AR-2]",
+#    "Sen. Reed, Jack [D-RI]",
+#    "Rep. Greene, Marjorie Taylor [R-GA-14]",
+#    "Sen. Shelby, Richard C. [R-AL]"
+#  ),
+#  stringsAsFactors = FALSE
+#)
+
+# ------ clean full_name ------ 
+#clean_names <- function(x) {
+#  x %>%
+#    str_replace_all("\\p{Zs}+", " ") %>%  # 将所有空白替换为普通空格
+#    str_squish() %>%                      # 压缩多空格
+#    str_trim() %>%
+#    str_to_lower()
+#}
+
+#legis_sum2 <- legis_sum1 %>%
+#  mutate(full_name_clean = clean_names(full_name))
+#name_map <- name_map %>%
+#  mutate(old_full_name_clean = clean_names(old_full_name))
+
+# ------ update full_name ------ 
+#legis_sum2 <- legis_sum2 %>%
+#  left_join(name_map, by = c("full_name" = "old_full_name")) %>%
+#  mutate(
+#    full_name = coalesce(new_full_name, full_name),
+#   updated_flag = !is.na(new_full_name)  # flage updated rows
+#  ) %>%
+#  dplyr::select(-new_full_name)
+
+# ------ bioguide match ------
+
+#update_rows <- which(legis_sum2$updated_flag & is.na(legis_sum2$bioguide_id))
+
+# full_name + congress as only key
+#legis_sum2$key <- paste0(legis_sum2$full_name, "_", legis_sum2$congress)
+#congress_basic$key <- paste0(congress_basic$full_name, "_", congress_basic$congress)
+
+#matched_ids <- congress_basic$bioguide_id[match(legis_sum2$key[update_rows], #congress_basic$key)]
+#legis_sum2$bioguide_id[update_rows] <- matched_ids
+
+#legis_sum1 <- legis_sum2 %>% dplyr::select(-key, -full_name_clean, -old_full_name_clean, #-updated_flag)
+```
+
+## 1.4 ideology update
+
+The original ideology data in the main database is standardized. We use ideology data at \[GovTrack\](<https://www.govtrack.us/about/analysis#ideology>) to replace them. ref: [Tauberer, Joshua](http://razor.occams.info/). 2012. Observing the Unobservables in the U.S. Congress, presented at Law Via the Internet 2012, Cornell Law School, October 2012.
+
+ideology cleansing
+
+```{r}
+#| label: ideology-cleansing
+#| echo: false
+
+ideology_115_house <- ideology_115_house %>% mutate(congress = 115, chamber = "House of Representatives")
+ideology_116_house <- ideology_116_house %>% mutate(congress = 116, chamber = "House of Representatives")
+ideology_117_house <- ideology_117_house %>% mutate(congress = 117, chamber = "House of Representatives")
+ideology_118_house <- ideology_118_house %>% mutate(congress = 118, chamber = "House of Representatives")
+ideology_115_senate <- ideology_115_senate %>% mutate(congress = 115, chamber = "Senate")
+ideology_116_senate <- ideology_116_senate %>% mutate(congress = 116, chamber = "Senate")
+ideology_117_senate <- ideology_117_senate %>% mutate(congress = 117, chamber = "Senate")
+ideology_118_senate <- ideology_118_senate %>% mutate(congress = 118, chamber = "Senate")
+
+chamber_ideology <- bind_rows(
+  ideology_115_house,
+  ideology_116_house,
+  ideology_117_house,
+  ideology_118_house,
+  ideology_115_senate,
+  ideology_116_senate,
+  ideology_117_senate,
+  ideology_118_senate)
+summary(chamber_ideology$congress)
+
+chamber_ideology$congress <- as.character(chamber_ideology$congress)
+```
+
+ideology merge
+
+```{r}
+#| label: ideology-merge
+#| echo: false
+
+merge_ideology <- function(df, ideology_df, verbose = TRUE) {
+  
+  df <- df %>%
+    mutate(
+      bioguide_id = toupper(stringr::str_trim(bioguide_id)),
+      congress    = as.character(congress),
+      chamber     = tolower(stringr::str_trim(chamber))
+    )
+  
+  ideology_df <- ideology_df %>%
+    mutate(
+      bioguide_id = toupper(stringr::str_trim(bioguide_id)),
+      congress    = as.character(congress),
+      chamber     = tolower(stringr::str_trim(chamber))
+    ) %>%
+    group_by(bioguide_id, congress, chamber) %>%
+    slice(1) %>%
+    ungroup() %>%
+    dplyr::select(bioguide_id, congress, chamber, ideology) %>%
+    rename(ideology_new = ideology)
+  
+  df <- df %>%
+    left_join(ideology_df, by = c("bioguide_id", "congress", "chamber")) %>%
+    mutate(
+      ideology = ideology_new,
+      matched  = !is.na(ideology_new)
+    ) %>%
+    dplyr::select(-ideology_new)
+  
+  if (verbose) {
+    n_missing <- sum(is.na(df$ideology))
+    n_matched <- sum(df$matched)
+    cat("✅ Merge complete.\n")
+    cat("  • Matched:", n_matched, "\n")
+    cat("  • Remaining NA ideology:", n_missing, "\n")
+  }
+  
+  return(df)
+}
+
+legis_sum1 <- merge_ideology(legis_sum1, chamber_ideology)
+
+# save legis_sum1
+save_to_output("legis_sum1.csv", data = legis_sum1)
+```
+
+ideology missing distribution: missing at random
+
+```{r}
+#| label: ideology-missing
+#| echo: false
+
+check_missing_ideology <- function(df, df_name = "dataset") {
+  missing_df <- df %>% filter(is.na(ideology))
+  
+  cat("✅", df_name, "total missing:", nrow(missing_df), "/", nrow(df), "\n\n")
+  
+  # Missing by party
+  cat("Missing by party:\n")
+  print(table(missing_df$party))
+  cat("\n")
+  
+  # Missing by state
+  cat("Missing by state:\n")
+  print(table(missing_df$state_code))
+  cat("\n")
+  
+  # Missing by chamber
+  cat("Missing by chamber:\n")
+  print(table(missing_df$chamber))
+  cat("\n")
+  
+  # Cross-tab: party x chamber
+  cat("Missing by party x chamber:\n")
+  print(table(missing_df$party, missing_df$chamber))
+}
+
+check_missing_ideology(legis_sum1, "legis_sum1")
+```
+
+# 2. data aggregation and generation
+
+## 2.1 individual level aggregation
+
+generate function: generate_decision_with_traits()
+
+> This function aggregates prediction and importance metrics for each legislator across different datasets, such as train, test,or merged. It computes the relative importance of 3 behavioral modes - intl, dom, and prof, and assigns each legislator a dominant decision category based on their most prominent behavior. It finally merges these aggregated results with demographic and institutional traits like gender, party, and ideology.
+
+```{r}
+#| label: generate-decision-with-traits
+#| echo: false
+# ---- Function: generate_decision_with_traits ----
+generate_decision_with_traits <- function(df, mode = "all") {
+  # parameter validation
+  if (!mode %in% c("all", "train", "test", "merged")) {
+    stop("mode must be 'all', 'train', 'test', or 'merged'")
+  }
+
+  # ---- step 1: data filtering ----
+  df_subset <- if (mode %in% c("all", "merged")) df else df %>% filter(dataset == mode)
+
+  # ---- step 2: data aggregation ----
+  group_vars <- if (mode == "merged") {
+    c("full_name", "congress")
+  } else {
+    c("full_name", "congress", "dataset")
+  }
+
+  df_clean <- df_subset %>%
+    group_by(across(all_of(group_vars))) %>%
+    summarise(
+      importance_intl = sum(importance_intl, na.rm = TRUE),
+      importance_dom  = sum(importance_dom,  na.rm = TRUE),
+      importance_prof = sum(importance_prof, na.rm = TRUE),
+      importance_all  = sum(importance_all,  na.rm = TRUE),
+      pred = mean(pred, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      intl_percentage = ifelse(importance_all > 0, importance_intl / importance_all, NA_real_),
+      dom_percentage  = ifelse(importance_all > 0, importance_dom  / importance_all, NA_real_),
+      prof_percentage = ifelse(importance_all > 0, importance_prof / importance_all, NA_real_),
+      max_val = pmax(intl_percentage, dom_percentage, prof_percentage, na.rm = TRUE),
+      decision = case_when(
+        is.na(max_val) ~ NA_character_,
+        intl_percentage == max_val & dom_percentage != max_val & prof_percentage != max_val ~ "intl",
+        dom_percentage  == max_val & intl_percentage != max_val & prof_percentage != max_val ~ "dom",
+        prof_percentage == max_val & intl_percentage != max_val & dom_percentage != max_val ~ "prof",
+        TRUE ~ "tie"
+      )
+    ) %>%
+    dplyr::select(-max_val, -importance_all)
+
+  # ---- step3: trait merging ----
+  traits <- df %>%
+    dplyr::select(full_name, congress, dataset, party, chamber, committee_el,
+           gender, age, seniority, ideology, district, state_code, bioguide_id) %>%
+    distinct()
+
+  if (mode == "merged") {
+    traits <- traits %>%
+      group_by(full_name, congress) %>%
+      summarise(
+        party = first(party),
+        chamber = first(chamber),
+        committee_el = first(na.omit(committee_el)),
+        gender = first(gender),
+        age = mean(age, na.rm = TRUE),
+        seniority = mean(seniority, na.rm = TRUE),
+        ideology = mean(ideology, na.rm = TRUE),
+        district = first(district),
+        state_code = first(state_code),
+        bioguide_id = first(bioguide_id),
+        .groups = "drop"
+      )
+
+    df_final <- df_clean %>%
+      left_join(traits, by = c("full_name", "congress"))
+  } else {
+    df_final <- df_clean %>%
+      left_join(traits, by = c("full_name", "congress", "dataset"))
+  }
+
+  # ---- step 4: join and label formatting ----
+  df_final <- df_final %>%
+    mutate(gender = factor(gender, levels = c(0, 1), labels = c("Female", "Male")))
+
+  return(df_final)
+}
+
+# ---- application ----
+#df_train <- generate_decision_with_traits_dual(df, mode = "train")
+#df_test <- generate_decision_with_traits_dual(df, mode = "test")
+
+# legis
+legis_cg <- generate_decision_with_traits(legis_sum1, mode = "merged")
+
+# save
+save_to_output("legis_cg.csv", data = legis_cg)
+```
+
+## 2.2 topic level aggregation
+
+generate function: generate_decision_with_issue()
+
+> This function processes legislative data to summarize each legislator's issue-level decision pattern (international, domestic, or professional). It groups the data by legislator, Congress session, and issue, aggregates importance scores, and calculates the dominant decision type for each group.
+
+```{r}
+#| label: generate decision with issues
+#| echo: false
+generate_decision_with_issues <- function(df, set_name = "all") {
+  # Step 1: Optional filter by dataset (train/test)
+  if (set_name %in% c("train", "test")) {
+    df <- df %>% filter(dataset == set_name)
+  }
+
+  # Step 2: Group by issue-congress level and summarize
+  df_clean <- df %>%
+    group_by(issue, congress, committee_el, party) %>%  # 保留 dataset 信息
+    summarise(
+      label = sum(label, na.rm = TRUE),
+      pred = mean(pred, na.rm = TRUE),
+      importance_intl = sum(importance_intl, na.rm = TRUE),
+      importance_dom = sum(importance_dom, na.rm = TRUE),
+      importance_prof = sum(importance_prof, na.rm = TRUE),
+      .groups = 'drop'
+    ) %>%
+    mutate(
+      total = importance_intl + importance_dom + importance_prof,
+      intl_percentage = ifelse(total > 0, importance_intl / total, NA_real_),
+      dom_percentage  = ifelse(total > 0, importance_dom  / total, NA_real_),
+      prof_percentage = ifelse(total > 0, importance_prof / total, NA_real_),
+      max_val = pmax(intl_percentage, dom_percentage, prof_percentage, na.rm = TRUE),
+      decision = case_when(
+        is.na(max_val) ~ NA_character_,
+        intl_percentage == max_val & dom_percentage != max_val & prof_percentage != max_val ~ "intl",
+        dom_percentage  == max_val & intl_percentage != max_val & prof_percentage != max_val ~ "dom",
+        prof_percentage == max_val & intl_percentage != max_val & dom_percentage  != max_val ~ "prof",
+        TRUE ~ "tie"
+      )
+    ) %>%
+    dplyr::select(-max_val, -total)
+
+  return(df_clean)
+}
+
+# ---- application ----
+legis_tp <- generate_decision_with_issues(legis_sum)
+
+save_to_output("legis_tp.csv", data = legis_tp)
+```
+
+# 3. overall descriptive analysis for individual
+
+This block visualizes the distribution of legislators' decision types (intl/dom/prof) in legis datasets. It includes overall bar plots and congress-specific facet plots. Additionally, it inspects label distributions across congress, party, chamber, gender, and committee.
+
+## 3.1 distribution plots
+
+overall
+
+```{r}
+#| label: overall barplot
+#| echo: false
+
+
+ggplot(legis_cg, aes(x = decision, fill = decision)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = c("intl" = "#1f77b4", "dom" = "#ff7f0e", "prof" = "#2ca02c")
+  ) +
+  geom_text(stat='count', aes(label=..count..), vjust=-0.8, size=5) +
+  labs(title = "decision mode by congressmen legis",
+       x = "decision mode",
+       y = "number") +
+  theme_minimal(base_size = 14)
+```
+
+by congress
+
+```{r}
+#| label: overall barplot by congress
+#| echo: false
+
+
+ggplot(legis_cg, aes(x = decision, fill = decision)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.0, size = 3) +
+  scale_fill_manual(
+    values = c("intl" = "#1f77b4", "dom" = "#ff7f0e", "prof" = "#2ca02c")
+  ) +
+  facet_wrap(~ congress, scales = "free_y") +
+  labs(title = "decision mode by congressmen legis",
+       x = "Decision Mode",
+       y = "Number") +
+  theme_minimal(base_size = 12)
+```
+
+seats change each congress
+
+```{r}
+#| label: legislators yaml clean
+#| echo: false
+
+# find yaml
+yaml_dir <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/legislators list yaml"  
+yaml_files <- list.files(yaml_dir, pattern = "\\.yaml$", full.names = TRUE)
+
+# clean yaml
+read_yaml_to_df <- function(file) {
+  # 读取 YAML
+  yaml_data <- yaml::read_yaml(file)
+  
+  # 提取届数（例如从 legislators-current117.yaml 得到 117）
+  congress_num <- str_extract(basename(file), "\\d{3}") %>% as.integer()
+  
+  # 展开每个议员的数据
+  df <- map_dfr(yaml_data, function(x) {
+    tibble::as_tibble(x$id)
+  })
+  
+  # 添加 congress 标识列
+  df <- df %>% mutate(congress = congress_num)
+  
+  return(df)
+}
+  
+# 读取所有 YAML 文件并拼起来
+legislators115_118 <- map_dfr(yaml_files, read_yaml_to_df)
+
+# match bioguide 匹配党派和性别
+# 确保 key 唯一
+bioguide_meta <- bioguide %>%
+  dplyr::select(bioguide_id, full_name, congress, party, gender, chamber) %>%
+  distinct(bioguide_id, congress, .keep_all = TRUE)
+
+legislators115_118$congress <- as.character(legislators115_118$congress)
+bioguide_meta$congress <- as.character(bioguide_meta$congress)
+
+# 初步匹配
+legislators_cleaned <- legislators115_118 %>%
+  left_join(
+    bioguide_meta %>% dplyr::select(bioguide_id, full_name, congress, party, gender, chamber),
+    by = c("bioguide" = "bioguide_id", "congress" = "congress")
+  )
+
+# 建立映射表
+members <- data.frame(
+  bioguide_id = c("S001219","S001204","S001177","R000600","P000610","M001219","L000605","J000303","B001245"),
+  full_name   = c(
+    "Rep. Sempolinski, Joseph [R-NY-23]",
+    "Del. San Nicolas, Michael F. Q. [D-GU-At-Large]",
+    "Del. Sablan, Gregorio Kilili Camacho [D-MP-At-Large]",
+    "Del. Radewagen, Aumua Amata Coleman [R-AS-At-Large]",
+    "Del. Plaskett, Stacey E. [D-VI-At-Large]",
+    "Del. Moylan, James [R-GU-At-Large]",
+    "Rep. Lee Carter, Erica [D-TX-18]",
+    "Del. Jones, Brenda [D-MI-At-Large]",
+    "Del. Bordallo, Madeleine [D-GU-At-Large]"
+  ),
+  party       = c("Republican","Democratic","Democratic","Republican","Democratic","Republican","Democratic","Democratic","Democratic"),
+  gender      = c("M","M","M","F","F","M","F","F","F"),
+  chamber     = c(
+    "House of Representatives",
+    "House of Representatives",
+    "House of Representatives",
+    "House of Representatives",
+    "House of Representatives",
+    "House of Representatives",
+    "House of Representatives",
+    "House of Representatives",
+    "House of Representatives"
+  ),
+  stringsAsFactors = FALSE
+)
+
+# 匹配缺少的
+legislators_cleaned <- legislators_cleaned %>%
+  left_join(
+    members %>%
+      dplyr::select(bioguide_id, party_fix = party, gender_fix = gender, chamber_fix = chamber),
+    by = c("bioguide" = "bioguide_id")
+  ) %>%
+  mutate(
+    party   = ifelse(is.na(party) & !is.na(party_fix), party_fix, party),
+    gender  = ifelse(is.na(gender) & !is.na(gender_fix), gender_fix, gender),
+    chamber = ifelse(is.na(chamber) & !is.na(chamber_fix), chamber_fix, chamber)
+  ) %>%
+  dplyr::select(-party_fix, -gender_fix, -chamber_fix)  # 删除中间变量
+```
+
+#### waiting for cleaning (code)
+
+```{r}
+#| label: seats change each congress
+#| echo: false
+
+
+# 1) 先做干净的汇总表（按 distinct bioguide）
+party_seat_trend <- legislators_cleaned %>%
+  mutate(
+    party = as.character(party),
+    congress = as.numeric(congress),
+    chamber = as.character(chamber)
+  ) %>%
+  filter(!is.na(party), !is.na(bioguide), !is.na(chamber)) %>%
+  group_by(congress, chamber, party) %>%
+  summarise(seat_count = n_distinct(bioguide), .groups = "drop") 
+
+# 2) 补齐所有可能的 (chamber, party, congress) 组合（防止缺届导致 lag 行为不稳定）
+all_congress <- sort(unique(party_seat_trend$congress))
+all_chamber  <- sort(unique(party_seat_trend$chamber))
+all_party    <- sort(unique(party_seat_trend$party))
+
+party_seat_trend <- party_seat_trend %>%
+  complete(chamber = all_chamber, party = all_party, congress = all_congress) %>%
+  arrange(chamber, party, congress) %>%
+  # 把缺失的 seat_count 用 NA 保留（不要填 0，便于区分“确实 0”与“无数据”）
+  mutate(seat_count = ifelse(is.na(seat_count), NA_integer_, seat_count))
+
+# 3) 计算 prev_seat, seat_change（使用 order_by 以防万一）
+party_seat_trend <- party_seat_trend %>%
+  group_by(chamber, party) %>%
+  arrange(congress, .by_group = TRUE) %>%
+  mutate(
+    prev_seat = dplyr::lag(seat_count, order_by = congress),
+    seat_change = ifelse(is.na(prev_seat), NA_integer_, seat_count - prev_seat),
+    seat_change_pct = ifelse(!is.na(prev_seat) & prev_seat != 0,
+                             (seat_count - prev_seat) / prev_seat * 100,
+                             NA_real_),
+    direction = case_when(
+      is.na(seat_change) ~ "",
+      seat_change > 0 ~ "↑",
+      seat_change < 0 ~ "↓",
+      seat_change == 0 ~ "→"
+    )
+  ) %>%
+  ungroup()
+
+# 4) 调试输出：检查每个 (chamber, party) 的行，看看 prev_seat 是否和你预期一致
+debug_check <- party_seat_trend %>%
+  filter(!is.na(seat_count)) %>%
+  arrange(chamber, party, congress)
+
+print(debug_check)
+
+# 5) 可视化：线 + 点 + 数字标注
+seg_data <- party_seat_trend %>%
+  filter(!is.na(prev_seat) & !is.na(seat_count)) %>%
+  mutate(prev_congress = dplyr::lag(congress, order_by = congress)) %>%
+  filter(!is.na(prev_congress)) # 保证可画线段
+
+ggplot(party_seat_trend, aes(x = congress, y = seat_count, color = party, group = party)) +
+  geom_line(size = 1.1, na.rm = TRUE) +
+  geom_point(size = 3, na.rm = TRUE) +
+  # 数字标注（只显示席位数）
+  geom_text_repel(
+    aes(label = ifelse(is.na(seat_count), "", seat_count)),
+    size = 3.8,
+    fontface = "bold",
+    nudge_y = 5,
+    na.rm = TRUE
+  ) +
+  facet_wrap(~ chamber, scales = "free_y") +
+  scale_color_manual(
+    values = c("Democratic" = "#1f77b4", "Republican" = "#d62728"),
+    na.value = "grey50"
+  ) +
+  scale_x_continuous(breaks = all_congress) +
+  theme_minimal(base_size = 13) +
+  labs(
+    title = "Party Seat Counts Across Congress Sessions by Chamber",
+    x = "Congress",
+    y = "Number of Members",
+    color = "Party"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+## 3.2 distribution map
+
+### 3.2.1 map dataset generation and cleansing
+
+```{r}
+#| label: mapdata preparation
+#| echo: false
+
+# ---- mapdata for house ----
+legis_cg_heatmap <- legis_cg %>%
+  filter(chamber == "house of representatives")
+
+# ---- mapdata for senate ----
+legis_cg_heatmap1 <- legis_cg %>%
+  filter(chamber == "senate")
+```
+
+district cleansing
+
+```{r}
+#| label: district cleansing for mapdata
+#| echo: false
+
+unique(legis_cg_heatmap$district[is.na(as.integer(legis_cg_heatmap$district))]) # debug district data issue
+
+legis_cg_heatmap  <- legis_cg_heatmap  %>%
+  mutate(
+    district_clean = case_when(
+      grepl("At Large", district, ignore.case = TRUE) ~ "00",
+      state_code %in% c("DC", "AS", "GU", "MP", "PR", "VI") ~ "98",
+      grepl("^[0-9]+$", district) ~ sprintf("%02d", as.integer(district)),
+      grepl("^[0-9]+(st|nd|rd|th)$", district, ignore.case = TRUE) ~ sprintf(
+        "%02d", as.integer(str_extract(district, "^[0-9]+"))
+      ),
+      TRUE ~ NA_character_  
+    ),
+    state_district = paste0(state_code, "-", district_clean)
+  )
+unique(legis_cg_heatmap$district_clean[is.na(as.integer(legis_cg_heatmap$district_clean))]) 
+```
+
+### 3.2.2 flip-key construction
+
+```{r}
+#| label: state flip key
+#| echo: false
+
+# fips-state
+fips_state_map <- data.frame(
+  fips = c(
+    "01","02","04","05","06","08","09","10","12","13","15","16","17","18","19",
+    "20","21","22","23","24","25","26","27","28","29","30","31","32","33","34",
+    "35","36","37","38","39","40","41","42","44","45","46","47","48","49","50",
+    "51","53","54","55","56","11","60","66","69","72","78"
+  ),
+  state = c(
+    "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+    "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+    "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+    "VA","WA","WV","WI","WY","DC","AS","GU","MP","PR","VI"
+  ),
+  stringsAsFactors = FALSE
+)
+
+# custom transformers
+state_to_fips <- function(state_code) {
+  res <- fips_state_map$fips[match(state_code, fips_state_map$state)]
+  return(res)
+}
+
+fips_to_state <- function(fips_code) {
+  # make sure fips_code is character
+  fips_code <- sprintf("%02s", as.character(fips_code))
+  res <- fips_state_map$state[match(fips_code, fips_state_map$fips)]
+  return(res)
+}
+
+# test
+fips_to_state("01")  # shoule be "AL"
+fips_to_state(9)     # shoule be "CT"
+fips_to_state(23)   # shoule be ME
+fips_to_state(44)   # shoule be RI
+fips_to_state(6)   # shoule be CA
+```
+
+### 3.2.3 house map generation function
+
+```{r}
+#| label: map function
+#| echo: false
+
+# ------------------ house map function ------------------
+plot_decision_map_by_congress <- function(congress_num,
+                                          decision_data,
+                                          model_type = c("adver", "legis"),
+                                          save_path = NULL,
+                                          save_width = 10,
+                                          save_height = 7) {
+  model_type <- match.arg(model_type)
+  
+  # ---- congress match ----
+  map_year <- switch(
+    as.character(congress_num),
+    "115" = 2016,
+    "116" = 2020,
+    "117" = 2020,
+    "118" = 2022,
+    stop("Unsupported congress number.")
+  )
+  
+  # ---- district match ----
+  district_col <- switch(
+    as.character(congress_num),
+    "115" = "CD115FP",
+    "116" = "CD116FP",
+    "117" = "CD116FP",
+    "118" = "CD118FP",
+    stop("Unsupported congress number.")
+  )
+  
+  # ---- local fallback paths ----
+  local_paths <- list(
+    "115" = "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/map data from us census/cb_2016_us_cd115_500k/cb_2016_us_cd115_500k.shp",
+    "116" = "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/map data from us census/tl_2020_us_cd116/tl_2020_us_cd116.shp",
+    "117" = "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/map data from us census/tl_2020_us_cd116/tl_2020_us_cd116.shp", # same as 116
+    "118" = "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/map data from us census/cb_2022_us_cd118_20m/cb_2022_us_cd118_20m.shp"
+  )
+  
+  # ---- load map data ----
+  message("🗺️ Loading congressional district map for ", congress_num, "th Congress...")
+  cd_map <- tryCatch(
+    {
+      tigris::congressional_districts(cb = TRUE, year = map_year)
+    },
+    error = function(e) {
+      message("⚠️ Cloud download failed. Loading from local file instead...")
+      sf::st_read(local_paths[[as.character(congress_num)]], quiet = TRUE)
+    }
+  )
+  
+  # ---- map data cleaning ----
+  cd_map <- cd_map %>%
+    mutate(
+      state_code = fips_to_state(STATEFP),
+      district_code = as.character(!!rlang::sym(district_col)),
+      district_clean = sprintf("%02d", as.integer(district_code)),
+      state_district = stringr::str_trim(paste0(state_code, "-", district_clean))
+    )
+  
+  # ---- decision data preparing ----
+  decision_df <- decision_data %>%
+    filter(congress == as.character(congress_num)) %>%
+    mutate(
+      state_district = stringr::str_trim(as.character(state_district)),
+      party = case_when(
+        party %in% c("R", "Republican", "REP") ~ "R",
+        party %in% c("D", "Democratic", "DEM") ~ "D",
+        party %in% c("I", "Independent", "IND") ~ "I",
+        TRUE ~ NA_character_
+      ),
+      decision = case_when(
+        decision %in% c("intl", "international") ~ "intl",
+        decision %in% c("dom", "domestic") ~ "dom",
+        decision %in% c("prof", "professional") ~ "prof",
+        TRUE ~ NA_character_
+      )
+    )
+  
+  # ---- join map ----
+  plot_df <- cd_map %>%
+    left_join(decision_df %>% dplyr::select(state_district, decision, party),
+              by = "state_district") %>%
+    mutate(
+      group_var = ifelse(
+        is.na(party) | is.na(decision) | party == "" | decision == "",
+        "missing",
+        paste0(party, "_", decision)
+      )
+    )
+  
+  # ---- color scheme ----
+  pal_vec <- c(
+    "R_intl" = "#ef8a62", "R_dom" = "#b2182b", "R_prof" = "#fddbc7",
+    "I_intl" = "#9e9ac8", "I_dom" = "#756bb1", "I_prof" = "#dadaeb",
+    "D_intl" = "#67a9cf", "D_dom" = "#2166ac", "D_prof" = "#d1e5f0",
+    "missing" = "grey80"
+  )
+  
+  all_levels <- names(pal_vec)
+  plot_df <- plot_df %>%
+    mutate(group_var = factor(group_var, levels = all_levels))
+  
+  # ---- main map ----
+  main_map <- ggplot(plot_df) +
+    geom_sf(aes(fill = group_var), color = "white", size = 0.1) +
+    scale_fill_manual(values = pal_vec, drop = FALSE, name = "Party + Decision") +
+    labs(
+      title = paste0(
+        ifelse(model_type == "adver", "Adver", "Legis"),
+        " Decision Mode by District (", congress_num, "th Congress)"
+      )
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "bottom") +
+    coord_sf(xlim = c(-125, -65), ylim = c(24, 50), expand = FALSE)
+  
+  # ---- Alaska & Hawaii ----
+  alaska_map <- ggplot(filter(plot_df, state_code == "AK")) +
+    geom_sf(aes(fill = group_var), color = "white", size = 0.1) +
+    scale_fill_manual(values = pal_vec, guide = "none") +
+    coord_sf(xlim = c(-180, -130), ylim = c(50, 72), expand = FALSE) +
+    theme_void()
+  
+  hawaii_map <- ggplot(filter(plot_df, state_code == "HI")) +
+    geom_sf(aes(fill = group_var), color = "white", size = 0.1) +
+    scale_fill_manual(values = pal_vec, guide = "none") +
+    coord_sf(xlim = c(-161, -154), ylim = c(18, 23), expand = FALSE) +
+    theme_void()
+  
+  # ---- combine ----
+  final_map <- cowplot::ggdraw() +
+    cowplot::draw_plot(main_map, 0, 0, 1, 1) +
+    cowplot::draw_plot(alaska_map, x = 0.03, y = 0.15, width = 0.25, height = 0.25) +
+    cowplot::draw_plot(hawaii_map, x = 0.20, y = 0.15, width = 0.25, height = 0.25)
+  
+  if (!is.null(save_path)) {
+  save_to_output(
+    filename = save_path,
+    plot = final_map,
+    width = save_width,
+    height = save_height
+  )
+}
+  
+  return(final_map)
+}
+```
+
+```{r}
+#| label: map function application
+#| echo: false
+
+# legis
+
+plot_decision_map_by_congress(115, legis_cg_heatmap, model_type = "legis",
+                              save_path = "maps/legis_115_map.png")
+
+plot_decision_map_by_congress(116, legis_cg_heatmap, model_type = "legis",
+                              save_path = "maps/legis_116_map.png")
+
+plot_decision_map_by_congress(117, legis_cg_heatmap, model_type = "legis",
+                              save_path = "maps/legis_117_map.png")
+
+plot_decision_map_by_congress(118, legis_cg_heatmap, model_type = "legis",
+                              save_path = "maps/legis_118_map.png")
+```
+
+### 3.2.4 senate map function (need further debug)
+
+```{r}
+#| label: senate map function
+#| echo: false
+
+# ------------------ senate map function（needs further debug） ------------------
+#plot_decision_map_by_congress_senate_debug <- function(congress_num,
+#                                                       decision_data,
+#                                                       model_type = c("adver", "legis"),
+#                                                       save_path = NULL,
+#                                                       save_width = 10,
+#                                                       save_height = 7,
+#                                                       shapefile_path = #"cb_2020_us_state_20m/cb_2020_us_state_20m.shp") {
+#  library(dplyr)
+#  library(sf)
+#  library(ggplot2)
+#  library(stringr)
+  
+#  model_type <- match.arg(model_type)
+  
+#  cat("???? 开始读取州地图...\n")
+#  states_map <- sf::st_read(shapefile_path, quiet = TRUE) %>%
+#    filter(!STUSPS %in% c("PR", "VI", "GU", "MP", "AS")) %>%
+#    mutate(state_code = toupper(STUSPS))
+  
+#  cat("州地图数据前几行:\n")
+#  print(head(states_map %>% st_drop_geometry() %>% select(STATEFP, STUSPS, state_code)))
+  
+#  cat("???? 读取决策数据...\n")
+  
+#  decision_df <- decision_data %>%
+#    filter(congress == as.character(congress_num)) %>%
+#    mutate(
+#      state_code = toupper(str_trim(as.character(state_code))),
+#      party = as.character(party),
+#      decision = as.character(decision)
+#    ) %>%
+#    group_by(state_code) %>%
+#    summarize(
+#      party = first(na.omit(party)),
+#      decision = first(na.omit(decision)),
+#      group_var = ifelse(
+#        is.na(party) | is.na(decision) | party == "" | decision == "",
+#        "missing",
+#        paste0(party, "_", decision)
+#      ),
+#      .groups = "drop"
+#    )
+  
+#  cat("决策数据前几行:\n")
+#  print(head(decision_df))
+  
+#  missing_states <- setdiff(decision_df$state_code, states_map$state_code)
+#  if (length(missing_states) > 0) {
+#    warning("这些 state_code 在地图数据中找不到: ", paste(missing_states, collapse = ", #"))
+#  } else {
+#    cat("??? 所有 state_code 都匹配。\n")
+#  }
+  
+#  cat("???? 计算州中心点...\n")
+#  state_centroids <- states_map %>%
+#    st_centroid() %>%
+#    st_coordinates() %>%
+#    as.data.frame() %>%
+#    mutate(state_code = states_map$state_code)
+  
+#  cat("州中心点数据前几行:\n")
+#  print(head(state_centroids))
+  
+#  cat("???? 合并决策数据和中心点...\n")
+#  plot_points <- decision_df %>%
+#    left_join(state_centroids, by = "state_code")
+  
+#  cat("合并后数据前几行:\n")
+#  print(head(plot_points))
+  
+#  if (nrow(plot_points) == 0) {
+#    stop("??? 合并后没有数据！请检查 state_code 是否一致。")
+#  }
+  
+#  plot_points <- plot_points %>%
+#    group_by(state_code) %>%
+#    mutate(
+#      X = X + runif(n(), -0.3, 0.3),
+#      Y = Y + runif(n(), -0.3, 0.3)
+#    ) %>%
+#    ungroup()
+  
+#  pal_vec <- c(
+#    "R_intl"  = "#b2182b", "R_dom"   = "#ef8a62", "R_prof"  = "#fddbc7",
+#    "I_intl"  = "#756bb1", "I_dom"   = "#9e9ac8", "I_prof"  = "#dadaeb",
+#    "D_intl"  = "#2166ac", "D_dom"   = "#67a9cf", "D_prof"  = "#d1e5f0",
+#    "missing" = "grey80"
+#  )
+  
+#  all_levels <- c("R_intl","R_dom","R_prof",
+#                  "I_intl","I_dom","I_prof",
+#                  "D_intl","D_dom","D_prof",
+#                  "missing")
+  
+#  plot_points <- plot_points %>%
+#    mutate(group_var = factor(group_var, levels = all_levels))
+  
+#  pal_vec <- pal_vec[names(pal_vec) %in% levels(plot_points$group_var)]
+  
+#  main_map <- ggplot() +
+#    geom_sf(data = states_map, fill = "white", color = "black", size = 0.2) +
+#    geom_point(data = plot_points,
+#               aes(x = X, y = Y, fill = group_var),
+#               shape = 21, size = 3, color = "black") +
+#    scale_fill_manual(values = pal_vec, drop = FALSE, name = "Party + Decision") +
+#    labs(
+#      title = paste0(ifelse(model_type == "adver", "Adver", "Legis"),
+#                     " Senate Decision Mode by State (", congress_num, "th)")
+#    ) +
+#    theme_minimal(base_size = 14) +
+#    theme(legend.position = "bottom") +
+#    coord_sf(xlim = c(-125, -65), ylim = c(24, 50), expand = FALSE)
+  
+#  if (!is.null(save_path)) {
+#    save_to_output(filename = save_path, plot = main_map, width = save_width, height = #save_height)
+#  }
+  
+#  return(list(
+#    plot = main_map,
+#    states_map = states_map,
+#    decision_df = decision_df,
+#    state_centroids = state_centroids,
+#    plot_points = plot_points
+#  ))
+#}
+```
+
+```{r}
+#| label: senate map debug
+#| echo: false
+
+# plot_decision_map_by_congress_senate_debug(
+#  115,
+#  adver_cg_heatmap1,
+#  model_type = "adver",
+#  save_path = "adver_115_map_state.png",
+#  shapefile_path = "cb_2020_us_state_20m/cb_2020_us_state_20m.shp"
+#)
+
+#unique(states_map$state_code)
+#unique(adver_cg_heatmap1$state_code)
+
+# map cleansing ----
+
+# 1. 读取本地 shapefile
+#states_map <- st_read("cb_2020_us_state_20m/cb_2020_us_state_20m.shp")
+
+# 2. 去掉不是州的区域（比如波多黎各、关岛等）
+#states_map <- states_map %>% 
+#  filter(!STUSPS %in% c("PR", "VI", "GU", "MP", "AS"))
+
+# 3. 改列名，把 STUSPS 作为 state_code
+#states_map <- states_map %>%
+#  mutate(state_code = STUSPS)
+
+# 4. 合并 shapefile 和你的数据
+#plot_df <- states_map %>%
+#  left_join(adver_cg_heatmap1 %>% 
+#              select(state_code, decision, party),
+#            by = "state_code") %>%
+#  mutate(
+#    party = as.character(party),
+#    decision = as.character(decision),
+#    group_var = ifelse(
+#      is.na(party) | is.na(decision) | party == "" | decision == "",
+#      "missing",
+#      paste0(party, "_", decision)
+#    )
+#  )
+
+```
+
+# 4. overall descriptive analysis for issues
+
+## 4.1 analysis based on bills data
+
+### 4.1.1 bills data cleansing
+
+```{r}
+#| label: bills data cleansing
+#| echo: false
+
+bills_data_aug <- bills_data %>%
+  mutate(congress = as.integer(congress)) %>%
+  left_join(
+    bioguide %>%
+      mutate(congress = as.integer(congress)) %>% 
+      dplyr::select(bioguide_id, congress, chamber, gender, party),
+    by = c("bioguide_id" = "bioguide_id", "congress" = "congress")
+  ) %>%
+  filter(congress != 119) 
+
+bills_data_aug <- bills_data_aug %>%
+  left_join(
+    legis_cg %>%
+      mutate(congress = as.integer(congress)) %>%
+      dplyr::select(bioguide_id, congress, decision, intl_percentage, prof_percentage, dom_percentage),
+    by = c("bioguide_id" = "bioguide_id", "congress" = "congress")
+  )
+
+summary(bills_data_aug)
+sum(is.na(bills_data_aug$party))
+```
+
+### 4.1.2 issues have major change on bills data from 115th to 118th congress
+
+```{r}
+#| label: issues bills dramatic change
+#| echo: false
+
+issue_trend <- bills_data_aug %>%
+  group_by(congress, issue) %>%
+  summarise(news_count = n(), .groups = "drop")
+
+issue_trend$congress <- as.numeric(issue_trend$congress)
+str(issue_trend$congress)
+
+# ----- 找出变化最剧烈的议题 -----
+issue_trend_change <- issue_trend %>%
+  group_by(issue) %>%
+  summarize(
+    change = (news_count[congress == max(as.numeric(congress))] - news_count[congress == min(as.numeric(congress))]) /
+             news_count[congress == min(as.numeric(congress))],
+    .groups = "drop"
+  ) %>%
+  arrange(desc(abs(change)))  # 按绝对变化排序
+top_issues <- issue_trend_change %>% slice(1:10) %>% pull(issue)
+
+# ----- plot -----
+p <- ggplot(issue_trend %>% filter(issue %in% top_issues),
+       aes(x = as.numeric(congress), y = news_count, color = issue)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Top Issues Trend Across Congress 115–118",
+    x = "Congress",
+    y = "bills number",
+    color = "issue"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Paired") +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+save_to_output("issue change most 115–118_bills.png", plot = p, width = 8, height = 4, dpi = 300)
+```
+
+### 4.1.3 bills trends plot for all issues
+
+```{r}
+#| label: issues bills all trend
+#| echo: false
+
+issue_trend_pct <- issue_trend %>%
+  filter(congress <= 118) %>%   
+  group_by(congress) %>%
+  mutate(
+    total_news = sum(news_count, na.rm = TRUE),
+    pct = (news_count / total_news) * 100
+  ) %>%
+  ungroup()
+
+issue_trend_last <- issue_trend_pct %>%
+  group_by(issue) %>%
+  filter(congress == max(congress)) %>%
+  ungroup()
+
+
+# 色彩方案改进
+n_colors <- length(unique(issue_trend_pct$issue))
+library(ggsci)
+library(randomcoloR)
+
+colors <- c(
+  pal_npg("nrc")(10),
+  pal_d3("category20")(20),
+  distinctColorPalette(n_colors)
+)[1:n_colors]
+
+p <- ggplot(issue_trend_pct, aes(x = as.numeric(congress), y = pct, color = issue)) +
+  geom_line(size = 1) +
+  geom_point(size = 1.5) +
+  geom_text_repel(
+    data = issue_trend_last,
+    aes(label = issue),
+    size = 3,
+    nudge_x = 1,
+    direction = "y",
+    segment.size = 0.2,
+    show.legend = FALSE
+  ) +
+  labs(
+    title = "Issue Share per Congress (as % of total bills)",
+    x = "Congress",
+    y = "Share (%)"
+  ) +
+  scale_x_continuous(breaks = 115:118) +  # ✅ 明确只显示115–118
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  theme_minimal() +
+  scale_color_manual(values = colors) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"
+  )
+
+p
+
+save_to_output("issue_share_per_congress_115–118_bills.png", plot = p, width = 10, height = 8, dpi = 300)
+```
+
+```{r}
+#| label: chamber party bills issue attention
+#| echo: false
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- bills_data_aug %>%
+  group_by(congress, chamber, party, bioguide_id, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到 chamber × party 层面
+issue_counts_chamber_party <- issue_counts_mid %>%
+  group_by(congress, chamber, party, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每个 chamber × party 的 Top 1 议题
+top_issues_chamber_party <- issue_counts_chamber_party %>%
+  group_by(congress, chamber, party) %>%
+  slice_max(order_by = total_mentions, n = 1, with_ties = FALSE) %>%
+  arrange(congress, chamber, party, desc(total_mentions))
+
+# 查看结果
+top_issues_chamber_party
+
+# 导出为 CSV
+save_to_output("top_issues_chamber_party_bills.csv", data = top_issues_chamber_party)
+
+```
+
+```{r}
+#| label: congress issue attention bills
+#| echo: false
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- bills_data_aug %>%
+  group_by(congress, chamber, party, bioguide_id, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到 chamber × party 层面
+top_issues_congress <- issue_counts_mid %>%
+  group_by(congress, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+# 3. 取每届每个 chamber × party 的 Top 1 议题
+top_issues_congress <- top_issues_congress %>%
+  group_by(congress) %>%
+  slice_max(order_by = total_mentions, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(congress, desc(total_mentions))
+
+ggplot(top_issues_congress, aes(x = fct_reorder(issue, total_mentions), y = total_mentions, fill = as.factor(congress))) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("115"="#FFD700","116"="#2E74C0","117"="#CB454A","118"="#009966")) +
+  theme_minimal() +
+  labs(
+    title = "Top Issue Mentions by Congress",
+    x = "Issue",
+    y = "Total Mentions",
+    fill = "Congress"
+  )
+
+# 导出为 CSV
+save_to_output("top_issues_congress_bills.csv", data = top_issues_congress)
+
+```
+
+```{r}
+#| label: party issue attention bills
+#| echo: false
+
+# 1. 每个议员在每届对某议题的关注次数
+issue_counts_mid <- bills_data_aug %>%
+  group_by(party, bioguide_id, issue) %>%
+  summarise(n_issue_mentions = n(), .groups = "drop")
+
+# 2. 聚合到  party 层面
+issue_counts_party <- issue_counts_mid %>%
+  group_by(party, issue) %>%
+  summarise(total_mentions = sum(n_issue_mentions), .groups = "drop")
+
+issue_counts_party <- issue_counts_party %>%
+  filter(!party %in% c("Independent", "I")) 
+
+# 确保每个党派内部按数量排序
+issue_counts_party <- issue_counts_party %>%
+  group_by(party) %>%
+  mutate(issue = reorder_within(issue, total_mentions, party))
+
+# 导出为 CSV
+save_to_output("top_issues_party_news.csv", data = issue_counts_party)
+
+# visualization
+p_issue_party_split <- ggplot(issue_counts_party, aes(
+  x = reorder(issue, total_mentions),
+  y = total_mentions,
+  fill = party
+)) +
+  geom_col(show.legend = FALSE) +
+  coord_flip() +
+  scale_x_reordered(labels = function(x) gsub("___.*$", "", x)) + 
+  scale_fill_manual(values = c("Democratic" = "#2E74C0", "Republican" = "#CB454A")) +
+  labs(
+    title = "Bills Mentions by Issue (Separated by Party)",
+    x = "Issue",
+    y = "Number of Bills Mentions"
+  ) +
+  facet_wrap(~ party, ncol = 1, scales = "free_y") +  # 上下分两个图
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    strip.text = element_text(face = "bold")
+  )
+
+p_issue_party_split
+
+```
+
+```{r}
+#| label: congress issue attention bills party
+#| echo: false
+
+# ---- 1. 数据清理 ----
+bills_clean <- bills_data_aug %>%
+  filter(!is.na(issue) & issue != "") %>%          # 去掉议题缺失
+  filter(!party %in% c("Independent", "I"))        # 去掉独立党派
+
+# ---- 2. 聚合统计 ----
+bills_count <- bills_clean %>%
+  group_by(congress, party, issue) %>%
+  summarise(
+    bill_count = n(),      # 每届国会、党派、议题的法案数量
+    .groups = "drop"
+  )
+
+# ---- 3. 可视化 ----
+library(ggplot2)
+library(patchwork)
+
+plot_bill_count <- function(data, congress_num) {
+  data %>%
+    filter(congress == congress_num) %>%
+    ggplot(aes(x = reorder(issue, bill_count), y = bill_count, fill = party)) +
+    geom_col(position = "dodge") +
+    coord_flip() +
+    scale_fill_manual(
+      values = c(
+        "Democratic" = "#2E74C0",  # 蓝色
+        "Republican" = "#CB454A"   # 红色
+      )
+    ) +
+    labs(
+      title = paste0("Number of Bills by Party — ", congress_num, "th Congress"),
+      x = "Issue",
+      y = "Number of Bills"
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      legend.position = "top"
+    )
+}
+
+# ---- 4. 生成四届国会的图 ----
+p115 <- plot_bill_count(bills_count, 115)
+p116 <- plot_bill_count(bills_count, 116)
+p117 <- plot_bill_count(bills_count, 117)
+p118 <- plot_bill_count(bills_count, 118)
+
+
+p115
+p116
+p117
+p118
+
+```
+
+### 4.1.4 calculating shanon-entropy for bills news
+
+```{r}
+#| label: issues shanon entropy bills
+#| echo: false
+
+# 计算每个议员在每个 congress × issue 的出现次数
+issue_dist <- bills_data_aug %>%
+  filter(!is.na(bioguide_id), !is.na(issue), !is.na(congress)) %>%
+  group_by(bioguide_id, congress, issue, gender, chamber, party) %>%
+  summarise(n = n(), .groups = "drop")
+
+# 计算每个议员在每个 congress 的总新闻数
+issue_total <- issue_dist %>%
+  group_by(bioguide_id, congress, gender, chamber, party) %>%
+  summarise(total = sum(n), .groups = "drop")
+
+# 合并并计算 p_k
+issue_prob <- issue_dist %>%
+  left_join(issue_total,
+            by = c("bioguide_id", "congress", "gender", "chamber", "party")) %>%
+  mutate(p = n / total)
+
+# 计算 Shannon entropy
+entropy_bills <- issue_prob %>%
+  group_by(bioguide_id, congress, gender, chamber, party) %>%
+  summarise(
+    shannon_entropy = -sum(p * log(p)),   # 默认自然对数
+    n_issues = n_distinct(issue),
+    total_news = sum(n),
+    .groups = "drop"
+  )
+head(entropy_bills)
+
+# violin plot
+ggplot(entropy_bills, aes(x = factor(congress), y = shannon_entropy)) +
+  geom_violin(fill = "skyblue", alpha = 0.5) +
+  geom_boxplot(width = 0.1, outlier.size = 0.5) +
+  theme_minimal() +
+  labs(x = "Congress", y = "Shannon Entropy",
+       title = "Distribution of Attention Diversity per Congress")
+
+# line graph
+entropy_summary <- entropy_bills %>%
+  group_by(congress) %>%
+  summarise(mean_entropy = mean(shannon_entropy, na.rm = TRUE),
+            median_entropy = median(shannon_entropy, na.rm = TRUE))
+p <- ggplot(entropy_summary, aes(x = congress, y = mean_entropy)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Congress", y = "Mean Shannon Entropy",
+       title = "Bills Average Attention Diversity by Congress")
+
+save_to_output("Average Attention Diversity by Congress-bills.png", plot = p, width = 8, height = 4, dpi = 300)
+```
+
+## 4.2 issue analysis using legis_tp
+
+### 4.2.1 issue heatmap by congress
+
+```{r}
+#| label: issue heatmap by congress
+#| echo: false
+
+plot_decision_mode_heatmap <- function(df, title = "Decision Mode by Issue and Congress", save_path = NULL) {
+
+  # 检查变量
+  required_vars <- c("issue", "congress", "decision")
+  if (!all(required_vars %in% names(df))) {
+    stop("Input dataframe must contain columns: issue, congress, decision.")
+  }
+
+  # 数据准备
+  df <- df %>%
+    dplyr::mutate(
+      decision = factor(decision, levels = c("intl", "dom", "prof")),
+      congress = as.factor(congress)
+    )
+
+  # 绘图
+  p <- ggplot(df, aes(x = congress, y = reorder(issue, desc(issue)), fill = decision)) +
+    geom_tile(color = "white") +
+    scale_fill_manual(
+      values = c("intl" = "#1f77b4", "dom" = "#ff7f0e", "prof" = "#2ca02c"),
+      na.value = "grey90"
+    ) +
+    labs(
+      title = title,
+      x = "Congress",
+      y = "Issue",
+      fill = "Decision Mode"
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      panel.grid = element_blank()
+    )
+
+  # 保存图片（如果提供了路径）
+  if (!is.null(save_path)) {
+    save_to_output(filename = save_path, plot = p, width = 8, height = 6, dpi = 300)
+  }
+
+  return(p)
+}
+
+# use of function plot_decision_mode_heatmap()
+plot_decision_mode_heatmap(legis_tp, title = "Legislative Decision Mode by Issue and Congress", save_path = "legis_mode.png")
+
+```
+
+### 4.2.2 focal issue of each congress
+
+```{r}
+#| label: congress focal issue
+#| echo: false
+
+plot_issue_trend_by_congress <- function(df, 
+                                         save_path = NULL, 
+                                         file_name = "issue_trend_heatmap.png",
+                                         width = 10, 
+                                         height = 8, 
+                                         dpi = 300,
+                                         scale_type = c("raw", "normalized", "log")) {
+
+  scale_type <- match.arg(scale_type)
+
+  issue_congress_label <- df %>%
+    filter(!is.na(issue), !is.na(congress), !is.na(label)) %>%
+    group_by(congress, issue) %>%
+    summarise(total_label = sum(label, na.rm = TRUE), .groups = "drop")
+
+  # Apply scale transformation
+  if (scale_type == "normalized") {
+    issue_congress_label <- issue_congress_label %>%
+      group_by(congress) %>%
+      mutate(scaled_label = total_label / sum(total_label, na.rm = TRUE)) %>%
+      ungroup()
+    fill_col <- "scaled_label"
+    fill_title <- "Normalized\nProportion"
+  } else if (scale_type == "log") {
+    issue_congress_label <- issue_congress_label %>%
+      mutate(scaled_label = log1p(total_label))  # log(1 + x)
+    fill_col <- "scaled_label"
+    fill_title <- "Log(Label + 1)"
+  } else {
+    fill_col <- "total_label"
+    fill_title <- "Label Count"
+  }
+
+  heatmap_plot <- ggplot(issue_congress_label, aes(x = factor(congress), y = reorder(issue, desc(issue)), fill = .data[[fill_col]])) +
+    geom_tile(color = "white") +
+    scale_fill_gradient(low = "#fee8c8", high = "#e34a33") +
+    labs(
+      title = "Most Discussed Issues by Congress",
+      x = "Congress",
+      y = "Issue",
+      fill = fill_title
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+  print(heatmap_plot)
+
+  if (!is.null(save_path)) {
+    save_to_output(filename = save_path, plot = heatmap_plot, width = width, height = height, dpi = dpi)
+  }
+
+  return(invisible(heatmap_plot))
+}
+
+
+plot_issue_trend_by_congress(legis_tp, save_path ="legis_issue_trend.png", scale_type = "normalized")
+
+```
+
+# 5. lgbm features importance analysis
+
+# 6. key characteristics analysis
+
+this part will use regression and logistic model to see the key relationship between legislators' personal characteristics and decision mode
+
+## 6.0 preparing
+
+### 6.0.1 data cleansing
+
+```{r}
+#| label: data cleansing
+#| echo: false
+
+# turn decision into is.dom
+legis_cg <- legis_cg %>%
+  mutate(is.dom = ifelse(decision == "dom", 1, 0))
+
+legis_cg <- legis_cg %>%
+  mutate(is.prof = ifelse(decision == "prof", 1, 0))
+
+# turn party into is.republican
+legis_cg <- legis_cg %>% 
+  mutate(is.republican = ifelse(party == "Republican", 1, 0))
+
+# turn categorical vector into numeric 
+legis_cg$gender_numeric <- ifelse(legis_cg$gender == "Male", 1, 0)
+
+legis_cg$chamber_numeric <- ifelse(legis_cg$chamber == "Senate", 1, 0)
+
+# add district data into legis_cg
+district_data$congress <- as.character(district_data$congress)
+
+legis_merged <- legis_cg %>%
+  left_join(
+    district_data,
+    by = c("congress", "state_code", "district")
+  )
+
+# set vars_to_check 
+vars_to_check <- c(
+  "high_edu_share",
+  "foreign_born_ratio",
+  "white_ratio",
+  "black_or_african_american_ratio",
+  "asian_ratio",
+  "american_indian_and_alaska_native_ratio",
+  "native_hawaiian_and_other_pacific_islander_ratio",
+  "white_collar_share",
+  "blue_collar_share",
+  "agriculture_share",
+  "median_household_income_that_year",
+  "age", "seniority", "ideology", "is.republican", "chamber", "gender"
+)
+```
+
+```{r}
+#| label: district group analysis data preparing
+#| echo: false
+
+# filter different level data
+
+dem_legis <- legis_merged %>%
+  filter(party == "Democratic")
+rep_legis <- legis_merged %>%
+  filter(party == "Republican")
+
+hosue_legis <- legis_merged %>%
+  filter(chamber == "house of representatives")
+senate_legis <- legis_merged %>%
+  filter(chamber == "senate")
+
+
+legis_115 <- legis_merged %>%
+  filter(congress == "115")
+legis_116 <- legis_merged %>%
+  filter(congress == "116")
+legis_117 <- legis_merged %>%
+  filter(congress == "117")
+legis_118 <- legis_merged %>%
+  filter(congress == "118")
+
+
+```
+
+### 6.0.2 co-linerality check
+
+```{r}
+#| label: co-linerality check function
+#| echo: false
+
+check_collinearity <- function(data, vars = NULL, show_plot = TRUE, max_name_length = 12) {
+  # ---- Step 1. 变量预处理 ----
+  if (is.null(vars)) vars <- names(data)
+  df <- dplyr::select(data, dplyr::all_of(vars))
+  
+  # ---- Step 2. 判断变量类型 ----
+  var_types <- sapply(df, function(x) {
+    if (is.numeric(x)) "numeric" else "categorical"
+  })
+  
+  # ---- Step 3. 初始化结果容器 ----
+  results <- list(
+    numeric_numeric = NULL,
+    categorical_numeric = NULL,
+    categorical_categorical = NULL
+  )
+  
+  # ---- Step 4. 数值-数值：皮尔逊相关 + 热力图 ----
+  num_vars <- names(var_types[var_types == "numeric"])
+  if (length(num_vars) >= 2) {
+    num_df <- df %>%
+      dplyr::select(dplyr::all_of(num_vars)) %>%
+      dplyr::mutate(dplyr::across(everything(), as.numeric))
+    
+    cor_mat <- cor(num_df, use = "pairwise.complete.obs")
+    results$numeric_numeric <- cor_mat
+    
+    if (show_plot) {
+      # 缩短长变量名用于显示
+      short_names <- substr(colnames(cor_mat), 1, max_name_length)
+      colnames(cor_mat) <- short_names
+      rownames(cor_mat) <- short_names
+      
+      # 对称热力图，方便查看
+      corrplot::corrplot(
+        cor_mat,
+        method = "color",
+        type = "full",     # full 显示对称矩阵
+        tl.cex = 0.7,      # 缩小字体
+        tl.col = "black",  # 标签颜色
+        number.cex = 0.6,  # 数字大小
+        diag = TRUE,       # 保留对角线
+        mar = c(0, 0, 1, 0)
+      )
+    }
+  }
+  
+  # ---- Step 5. 数值-分类：ANOVA检验 ----
+  cat_vars <- names(var_types[var_types == "categorical"])
+  if (length(cat_vars) > 0 && length(num_vars) > 0) {
+    cat_num_tests <- expand.grid(numeric = num_vars, categorical = cat_vars, 
+                                 stringsAsFactors = FALSE)
+    results$categorical_numeric <- cat_num_tests %>%
+      dplyr::mutate(
+        p_value = purrr::map2_dbl(numeric, categorical, function(num, cat) {
+          formula <- as.formula(paste(num, "~", cat))
+          tryCatch({
+            summary(aov(formula, data = df))[[1]][["Pr(>F)"]][1]
+          }, error = function(e) NA)
+        })
+      )
+  }
+  
+  # ---- Step 6. 分类-分类：卡方检验 ----
+  if (length(cat_vars) >= 2) {
+    cat_tests <- expand.grid(var1 = cat_vars, var2 = cat_vars, 
+                             stringsAsFactors = FALSE)
+    cat_tests <- cat_tests[cat_tests$var1 != cat_tests$var2, ]
+    results$categorical_categorical <- cat_tests %>%
+      dplyr::mutate(
+        p_value = purrr::map2_dbl(var1, var2, function(v1, v2) {
+          tbl <- table(df[[v1]], df[[v2]])
+          tryCatch(chisq.test(tbl)$p.value, error = function(e) NA)
+        })
+      )
+  }
+  
+  # ---- Step 7. 输出结果 ----
+  message("✅ Collinearity check completed.")
+  return(results)
+}
+
+# 第二个函数： 看数值*数值的p值
+
+check_numeric_pvalues_star <- function(data, vars = NULL) {
+  if (is.null(vars)) vars <- names(data)
+  df <- data[, vars]
+  
+  # 只保留数值型变量
+  num_vars <- names(df)[sapply(df, is.numeric)]
+  n <- length(num_vars)
+  
+  if (n < 2) stop("数值型变量少于 2 个，无法计算相关性")
+  
+  # 初始化结果列表
+  res <- data.frame(
+    var1 = character(),
+    var2 = character(),
+    correlation = numeric(),
+    p_value = numeric(),
+    significance = character(),
+    stringsAsFactors = FALSE
+  )
+  
+  # 循环计算相关性和 p 值
+  for (i in 1:(n-1)) {
+    for (j in (i+1):n) {
+      x <- df[[num_vars[i]]]
+      y <- df[[num_vars[j]]]
+      # 仅使用不为 NA 的观测
+      valid <- complete.cases(x, y)
+      if (sum(valid) < 3) {
+        cor_val <- NA
+        p_val <- NA
+      } else {
+        test <- cor.test(x[valid], y[valid])
+        cor_val <- test$estimate
+        p_val <- test$p.value
+      }
+      # 根据 p 值加星号
+      sig <- if (is.na(p_val)) "" else if (p_val < 0.001) "***" else if (p_val < 0.01) "**" else if (p_val < 0.05) "*" else ""
+      
+      res <- rbind(res, data.frame(
+        var1 = num_vars[i],
+        var2 = num_vars[j],
+        correlation = cor_val,
+        p_value = p_val,
+        significance = sig,
+        stringsAsFactors = FALSE
+      ))
+    }
+  }
+  
+  return(res)
+}
+```
+
+```{r}
+#| label: co-linerality check 
+#| echo: false
+
+# 查看数值型变量间的相关矩阵
+collinearity_result1 <- check_collinearity(legis_merged, vars_to_check, show_plot = TRUE)
+
+collinearity_result1$numeric_numeric
+
+# 查看数值型变量间的p值
+numeric_results1 <- check_numeric_pvalues_star(legis_merged, vars_to_check)
+
+# 查看分类 vs 数值 的 ANOVA 显著性
+collinearity_result1$categorical_numeric %>% 
+  dplyr::filter(p_value < 0.05)
+
+# 查看分类 vs 分类 的卡方结果
+collinearity_result1$categorical_categorical
+```
+
+```{r}
+#| label: co-linerality filter 
+#| echo: false
+
+# 筛选相关性高且显著的变量
+filter_high_corr <- function(results, cor_threshold = 0.5, sig_level = 0.05) {
+  # 保留绝对相关系数大于阈值且 p 值小于显著性水平的行
+  filtered <- results %>%
+    dplyr::filter(abs(correlation) >= cor_threshold & p_value <= sig_level)
+  
+  # 按相关系数绝对值从大到小排序
+  filtered <- filtered %>%
+    dplyr::arrange(desc(abs(correlation)))
+  
+  return(filtered)
+}
+
+# 使用示例：筛选 |r| >= 0.5 且 p < 0.05
+high_corr_vars1 <- filter_high_corr(numeric_results1, cor_threshold = 0.5, sig_level = 0.05)
+
+high_corr_vars1
+```
+
+```{r}
+#| label: set preference
+#| echo: false
+
+# set references
+set_reference_levels <- function(df,
+                                 ref_party = "democratic",
+                                 ref_is.republican = "0",
+                                 ref_chamber = "Senate") {
+  
+  if ("party" %in% names(df)) {
+    df$party <- factor(df$party)  # 转换为factor
+    df$party <- relevel(df$party, ref = ref_party)  # 设置reference level
+  }
+  
+   if ("party" %in% names(df)) {
+    df$is.republican <- factor(df$is.republican)  # 转换为factor
+    df$is.republican <- relevel(df$is.republican, ref = ref_is.republican)  # 设置reference level
+  }
+  
+  if ("chamber" %in% names(df)) {
+    df$chamber <- factor(df$chamber)
+    df$chamber <- relevel(df$chamber, ref = ref_chamber)
+  }
+  
+  return(df)
+}
+
+legis_cg <- set_reference_levels(legis_cg,
+                                 ref_party = "Democratic",
+                                 ref_is.republican = "0",
+                                 ref_chamber = "senate")
+```
+
+```{r}
+#| label: lasso function
+#| echo: false
+
+run_glmnet_selection <- function(data, formula, alpha = 1, family = "binomial") {
+  # 处理缺失值
+  complete_data <- model.frame(formula, data = data, na.action = na.omit)
+  
+  # 自变量矩阵
+  X <- model.matrix(formula, data = complete_data)[,-1]
+  
+  # 因变量
+  y <- complete_data[[as.character(formula[[2]])]]
+  
+  # 拟合 lasso/ridge/elnet
+  cv_fit <- cv.glmnet(X, y, family = family, alpha = alpha)
+  
+  # 可视化交叉验证误差
+  plot(cv_fit, main = paste("CV for alpha =", alpha, ", family =", family))
+  
+  # 输出最佳 lambda 和系数
+  cat("Best lambda:", cv_fit$lambda.min, "\n")
+  print(coef(cv_fit, s = "lambda.min"))
+  
+  return(cv_fit)
+}
+```
+
+```{r}
+#| label: logit-analysis function
+#| echo: false
+
+# analysis function
+analyze_logit_model <- function(model) {
+  library(broom)
+  
+  tidy_model <- tryCatch(
+    tidy(model, conf.int = TRUE),
+    error = function(e) {
+      message("Error in tidy(): ", e$message)
+      return(NULL)
+    }
+  )
+  
+  if (is.null(tidy_model)) return(NULL)
+  
+  # 检查是否包含 conf.low 和 conf.high，若无则用 NA 填充
+  if (!"conf.low" %in% names(tidy_model)) tidy_model$conf.low <- NA
+  if (!"conf.high" %in% names(tidy_model)) tidy_model$conf.high <- NA
+  
+  coefs <- tidy_model %>%
+    mutate(
+      odds_ratio = exp(estimate),
+      conf.low.or = exp(conf.low),
+      conf.high.or = exp(conf.high),
+      significance = case_when(
+        p.value < 0.001 ~ "***",
+        p.value < 0.01  ~ "**",
+        p.value < 0.05  ~ "*",
+        p.value < 0.1   ~ ".",
+        TRUE ~ ""
+      )
+    ) %>%
+    dplyr::select(term, estimate, odds_ratio, conf.low.or, conf.high.or,
+           std.error, p.value, significance)
+  
+  print(summary(model))
+  print(coefs)
+  
+  # pseudo R-squared (McFadden)
+  if (requireNamespace("pscl", quietly = TRUE)) {
+    library(pscl)
+    cat("\nPseudo R-squared:\n")
+    print(pscl::pR2(model))
+  } else {
+    message("Install 'pscl' package for pseudo R-squared calculation.")
+  }
+  
+  return(coefs)
+}
+```
+
+```{r}
+#| label: residual check function
+#| echo: false
+
+plot_logit_residuals <- function(model_list, data, 
+                                 subfolder = "logit_residual_plots", 
+                                 n = 1000) {
+  # 使用全局 output_dir 变量
+  if (!exists("output_dir")) {
+    output_dir <- "output"
+  }
+
+  # 子目录完整路径
+  save_dir <- file.path(output_dir, subfolder)
+
+  # 若不存在则创建
+  if (!dir.exists(save_dir)) {
+    dir.create(save_dir, recursive = TRUE)
+  }
+
+  # 遍历模型
+  for (model_name in names(model_list)) {
+    model <- model_list[[model_name]]
+
+    # 生成残差
+    res <- simulateResiduals(fittedModel = model, n = n)
+
+    # 自动获取自变量（去掉因变量）
+    predictors <- all.vars(formula(model))[-1]
+    predictors <- predictors[predictors %in% colnames(data)]  # 只保留存在的列
+
+    # 设置输出路径
+    file_path <- file.path(save_dir, paste0("residuals_", model_name, "_all.png"))
+
+    # 画图并保存
+    png(file_path, width = 2400, height = 1600, res = 200)
+    n_pred <- length(predictors)
+    n_row <- ceiling(n_pred / 2)
+    par(mfrow = c(n_row, 2), mar = c(4, 4, 3, 1))
+
+    for (var in predictors) {
+      plotResiduals(res, predictor = data[[var]],
+                    main = paste("Residuals vs", var, "\n(", model_name, ")"))
+    }
+
+    dev.off()
+  }
+
+  cat("✅ All residual plots saved under:", save_dir, "\n")
+}
+```
+
+```{r}
+#| label: lm robust check function
+#| echo: false
+
+plot_lm_diagnostics <- function(model_list, output_dir = "lm_diagnostics_plots") {
+  
+  # 确保在 output/ 下创建子目录
+  full_output_dir <- file.path("output", output_dir)
+  if (!dir.exists(full_output_dir)) {
+    dir.create(full_output_dir, recursive = TRUE)
+  }
+
+  for (model_name in names(model_list)) {
+    model <- model_list[[model_name]]
+    
+    # 1. QQ Plot
+    p1 <- ggplot(model, aes(sample = .stdresid)) +
+      stat_qq() + stat_qq_line(color = "red") +
+      labs(title = paste0("QQ Plot - ", model_name),
+           y = "Standardized Residuals") +
+      theme_minimal()
+
+    # 2. 残差 vs 拟合值
+    df <- augment(model)
+    p2 <- ggplot(df, aes(.fitted, .resid)) +
+      geom_point(alpha = 0.6) +
+      geom_smooth(method = "loess", se = FALSE, color = "blue") +
+      geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+      labs(title = paste0("Residuals vs Fitted - ", model_name),
+           x = "Fitted values", y = "Residuals") +
+      theme_minimal()
+
+    # 3. Cook's Distance
+    p3 <- ggplot(df, aes(seq_along(.cooksd), .cooksd)) +
+      geom_bar(stat = "identity", fill = "tomato", alpha = 0.7) +
+      labs(title = paste0("Cook's Distance - ", model_name),
+           x = "Observation", y = "Cook's D") +
+      theme_minimal()
+
+    # 4. 杠杆图
+    p4 <- ggplot(df, aes(.hat, .std.resid)) +
+      geom_point(alpha = 0.6) +
+      geom_smooth(method = "loess", se = FALSE, color = "blue") +
+      labs(title = paste0("Leverage vs Std Residuals - ", model_name),
+           x = "Leverage", y = "Standardized Residuals") +
+      theme_minimal()
+
+    combined_plot <- (p1 | p2) / (p3 | p4)
+
+    # 保存（save_to_output 自动拼上 "output" 前缀）
+    save_to_output(
+      filename = file.path(output_dir, paste0("diagnostic_", model_name, ".png")),
+      plot = combined_plot,
+      width = 12, height = 10, dpi = 300
+    )
+  }
+
+  cat("✅ 所有诊断图已保存至：", full_output_dir, "\n")
+}
+```
+
+## 6.1 dependent variable: is.dom
+
+### 6.1.1 multiple variables logit model
+
+lasso - demographic
+
+```{r}
+#| label: is.dom logit lasso1
+#| echo: false
+
+# legis
+cv_lasso_legis <- run_glmnet_selection(legis_cg, is.dom ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 1,
+  family = "binomial")
+cv_ridge_legis <- run_glmnet_selection(legis_cg, is.dom ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0,
+  family = "binomial")
+cv_elnet_legis <- run_glmnet_selection(legis_cg, is.dom ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0.5,
+  family = "binomial")
+```
+
+lasso - add district_data
+
+```{r}
+#| label: is.dom logit lasso2
+#| echo: false
+
+# legis
+cv_lasso_legis <- run_glmnet_selection(legis_merged, is.dom ~ age + party + ideology + chamber + gender + seniority + high_edu_share + foreign_born_ratio + white_ratio + black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + white_collar_share + blue_collar_share + agriculture_share + median_household_income_that_year + as.factor(congress), alpha = 1,
+  family = "binomial")
+cv_ridge_legis <- run_glmnet_selection(legis_merged, is.dom ~ age + party + ideology + chamber + gender + seniority + high_edu_share + foreign_born_ratio + white_ratio + black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + white_collar_share + blue_collar_share + agriculture_share + median_household_income_that_year + as.factor(congress), alpha = 0,
+  family = "binomial")
+cv_elnet_legis <- run_glmnet_selection(legis_merged, is.dom ~ age + party + ideology + chamber + gender + seniority + high_edu_share + foreign_born_ratio + white_ratio + black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + white_collar_share + blue_collar_share + agriculture_share + median_household_income_that_year + as.factor(congress), alpha = 0.5,
+  family = "binomial")
+```
+
+models training - legis
+
+```{r}
+#| label: is.dom logit mul3
+#| echo: false
+
+# model 0
+legis_logit0 <- glm(is.dom ~ age + is.republican + ideology + chamber + seniority + gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+# adjusted models
+legis_logit1 <- glm(is.dom ~ age +  chamber + ideology +  gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit2 <- glm(is.dom ~ age +  chamber + is.republican +  gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit3 <- glm(is.dom ~ seniority +  chamber + is.republican +  gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit4 <- glm(is.dom ~ seniority +  chamber + ideology +  gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+# results
+modelsummary(
+  list(
+    "Legis All" = legis_logit0,
+    "1" = legis_logit1,
+    "2" = legis_logit2,
+    "3" = legis_logit3,
+    "4" = legis_logit4
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "logitmodel_legis_isdom.html"),
+  escape = FALSE,
+  gof_omit = "AIC|BIC"
+)
+
+
+# ---- vif check ----
+vif(legis_logit0)
+vif(legis_logit1)
+vif(legis_logit2)
+vif(legis_logit3)
+vif(legis_logit4)
+```
+
+```{r}
+#| label: is.dom logit district1
+#| echo: false
+
+legis_logit_district0 <- glm(is.dom ~ high_edu_share + foreign_born_ratio + white_ratio + black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + white_collar_share + blue_collar_share + agriculture_share + median_household_income_that_year + as.factor(congress), 
+                   data = legis_merged, 
+                   family = binomial())
+
+# adjusted model
+# keep education
+legis_logit_district1 <- glm(is.dom ~ high_edu_share + foreign_born_ratio +  black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + agriculture_share + median_household_income_that_year + as.factor(congress), 
+                   data = legis_merged, 
+                   family = binomial())
+
+# keep occupation (blue_collar) 
+legis_logit_district2 <- glm(is.dom ~ foreign_born_ratio + asian_ratio +  black_or_african_american_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + median_household_income_that_year + blue_collar_share + agriculture_share + as.factor(congress), 
+                   data = legis_merged, 
+                   family = binomial())
+
+legis_logit_district3 <- glm(is.dom ~ foreign_born_ratio + white_ratio + black_or_african_american_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + median_household_income_that_year + agriculture_share + as.factor(congress), 
+                   data = legis_merged, 
+                   family = binomial())
+
+
+# ---- vif check ----
+vif(legis_logit_district0)
+vif(legis_logit_district1)
+vif(legis_logit_district2)
+vif(legis_logit_district3)
+
+# results
+modelsummary(
+  list(
+    "Legis All" = legis_logit_district0,
+    "1" = legis_logit_district1,
+    "2" = legis_logit_district2,
+    "3" = legis_logit_district3
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "logitmodel_legis_isdom_district.html"),
+  escape = FALSE,
+  gof_omit = "AIC|BIC"
+)
+
+
+```
+
+#### residual check for logit model
+
+```{r}
+#| label: logit model residual check
+#| echo: false
+
+model_list_legis_dom_logit <- list(
+  "legis_dom_logit1" = legis_logit1,
+  "legis_dom_logit2" = legis_logit2,
+  "legis_dom_logit3" = legis_logit3,
+  "legis_dom_logit4" = legis_logit4
+)
+
+plot_logit_residuals(model_list_legis_dom_logit, legis_cg)
+```
+
+### 6.1.2 single variable logit model
+
+models training - legis
+
+```{r}
+#| label: is.dom logit sin2
+#| echo: false
+
+legis_logit_age <- glm(is.dom ~ age + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_ideology <- glm(is.dom ~ ideology + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_is.republican <- glm(is.dom ~ is.republican + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_gender <- glm(is.dom ~ gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_chamber <- glm(is.dom ~ chamber + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+legis_logit_seniority <- glm(is.dom ~ seniority + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+
+# result
+modelsummary(
+  list(
+    "1" = legis_logit_age,
+    "2" = legis_logit_ideology,
+    "3" = legis_logit_is.republican,
+    "4" = legis_logit_gender,
+    "5" = legis_logit_chamber,
+    "6" = legis_logit_seniority
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "logitmodel_legis_seperated_isdom.html"),
+  escape = FALSE,
+  gof_omit = "AIC|BIC"
+)
+```
+
+```{r}
+#| label: is.dom logit sin district2
+#| echo: false
+
+
+# 对每个自变量循环建模型，并整理结果
+vars <- c(
+  "age", "party", "ideology", "chamber", "gender", "seniority",
+  "high_edu_share", "foreign_born_ratio", "white_ratio", 
+  "black_or_african_american_ratio", "asian_ratio",
+  "american_indian_and_alaska_native_ratio", 
+  "native_hawaiian_and_other_pacific_islander_ratio",
+  "white_collar_share", "blue_collar_share", "agriculture_share",
+  "median_household_income_that_year"
+)
+
+legis_single_models <- vars %>%
+  map_df(function(v) {
+    formula_str <- paste0("is.dom ~ ", v, " + as.factor(congress)")
+    m <- glm(as.formula(formula_str), data = legis_merged, family = binomial())
+    
+    tidy(m) %>%
+      filter(term == v) %>%
+      mutate(var = v,
+             OR = exp(estimate)) # 转换为odds ratio方便解读
+  })
+
+# 查看结果
+legis_single_models %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value, OR) %>%
+  arrange(p.value)
+
+legis_single_models %>%
+  mutate(sig = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    p.value < 0.1 ~ "+",
+    TRUE ~ ""
+  )) %>%
+  ggplot(aes(x = reorder(var, estimate), y = estimate, color = p.value < 0.05)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = estimate - 1.96 * std.error,
+                    ymax = estimate + 1.96 * std.error),
+                width = 0.2) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Variables", y = "Logit Coefficient (is.dom)",
+       title = "Single-variable Logit Results (with Congress FE)")
+
+```
+
+coefficient plot
+
+```{r}
+#| label: is.dom coefficient plot
+#| echo: false
+
+# ----- model lists -----
+legis_lm_models <- list(
+  age = legis_logit_age,
+  ideology = legis_logit_ideology,
+  is_republican = legis_logit_is.republican,
+  gender = legis_logit_gender,
+  chamber = legis_logit_chamber,
+  seniority = legis_logit_seniority
+)
+
+
+# ----- extract coefficient and clean -----
+
+# legis
+coef_legis <- map_df(names(legis_lm_models), function(name) {
+  tidy(legis_lm_models[[name]]) %>%
+    mutate(model = name)
+})
+coef_legis_clean <- coef_legis %>%
+  filter(!grepl("Intercept|congress", term))
+
+
+# ----- estimate and 95% CI -----
+
+p2 <- ggplot(coef_legis_clean, aes(x = estimate, y = reorder(model, estimate))) +
+  geom_point(size = 3, color = "#2c7fb8") +
+  geom_errorbarh(aes(xmin = estimate - 1.96 * std.error,
+                     xmax = estimate + 1.96 * std.error),
+                 height = 0.2, color = "#2c7fb8") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Coefficient Estimates Across Models",
+    x = "Coefficient Estimate (with 95% CI)",
+    y = "Predictor Variable"
+  )
+save_to_output("legis_logit_single_coefficient.png", plot = p2, width = 8, height = 4, dpi = 300)
+
+```
+
+## 6.2 dependent variable: dom_percentage
+
+### 6.2.1 multiple variables regression model
+
+lasso
+
+```{r}
+#| label: dom.percentage lm mul1
+#| echo: false
+
+
+# legis
+cv_lasso_legis1 <- run_glmnet_selection(
+  data = legis_cg,
+  formula = dom_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 1,
+  family = "gaussian"  
+)
+
+cv_ridge_legis1 <- run_glmnet_selection(
+  data = legis_cg,
+  formula = dom_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 0,
+  family = "gaussian"  
+)
+
+cv_elnet_legis1 <- run_glmnet_selection(
+  data = legis_cg,
+  formula = dom_percentage ~ age + is.republican + ideology + chamber + gender + seniority + as.factor(congress),
+  alpha = 0.5,
+  family = "gaussian"  
+)
+```
+
+models training - legis
+
+```{r}
+#| label: dom.percentage lm mul3
+#| echo: false
+
+# original
+legis_lm0 <- lm(dom_percentage ~ age + 
+                     is.republican + ideology + seniority+ 
+                     chamber + gender + 
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# adjusted
+legis_lm1 <- lm(dom_percentage ~ age + 
+                     chamber + gender + is.republican 
+                     + as.factor(congress),   data = legis_cg )
+
+legis_lm2 <- lm(dom_percentage ~ age + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_lm3 <- lm(dom_percentage ~ seniority + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_lm4 <- lm(dom_percentage ~ seniority + 
+                     is.republican + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# result
+modelsummary(
+  list(
+    "Legis LM" = legis_lm0,
+    "1" = legis_lm1,
+    "2" = legis_lm2,
+    "3" = legis_lm3,
+    "4" = legis_lm4
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "lmmodels_legis_dom.html"),
+  escape = FALSE
+)
+
+# ---- vif check ----
+vif(legis_lm0)
+vif(legis_lm1)
+vif(legis_lm2)
+vif(legis_lm3)
+vif(legis_lm4)
+```
+
+legis_lm0 marginal effects
+
+```{r}
+#| label: dom.percentage marginal effects legis
+#| echo: false
+
+# 获取变量的预测边际效应
+eff_age1 <- ggpredict(legis_lm0, terms = "age")
+eff_ideo1 <- ggpredict(legis_lm0, terms = "ideology")
+eff_sen1 <- ggpredict(legis_lm0, terms = "seniority")
+eff_gender1 <- ggpredict(legis_lm0, terms = "gender")
+
+# ideology
+p2 <- ggplot(eff_ideo1, aes(x = x, y = predicted)) +
+  geom_line(color = "steelblue", linewidth = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+  labs(
+    x = "Ideology",
+    y = "Predicted Domestic Percentage",
+    title = "Marginal Effect of Ideology on Domestic Percentage Legis"
+  ) +
+  theme_minimal(base_size = 14)
+save_to_output("ideology_marginal_effect_legis_dom.png", plot = p2, width = 8, height = 4, dpi = 300)
+```
+
+### 6.2.2 single variable regression model
+
+models training - legis
+
+```{r}
+#| label: dom.percentage lm sin2
+#| echo: false
+
+legis_cg_age1 <- lm(dom_percentage ~ age +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_ideology1 <- lm(dom_percentage ~ ideology +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_is.republican1 <- lm(dom_percentage ~ is.republican +
+                     as.factor(congress), 
+               data = legis_cg)
+
+legis_cg_chamber1 <- lm(dom_percentage ~ chamber +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_gender1 <- lm(dom_percentage ~ gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_seniority1 <- lm(dom_percentage ~ seniority +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# result
+modelsummary(
+  list(
+    "1" = legis_cg_age1,
+    "2" = legis_cg_ideology1,
+    "3" = legis_cg_is.republican1,
+    "4" = legis_cg_gender1,
+    "5" = legis_cg_chamber1,
+    "6" = legis_cg_seniority1
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "lmmodel_legis_seperated_dom.html"),
+  escape = FALSE
+)
+```
+
+single variable model coefficient plot
+
+```{r}
+#| label: dom.percentage coefficient plot
+#| echo: false
+
+# ----- model lists -----
+legis_lm_models <- list(
+  age = legis_cg_age1,
+  ideology = legis_cg_ideology1,
+  is_republican = legis_cg_is.republican1,
+  gender = legis_cg_gender1,
+  chamber = legis_cg_chamber1,
+  seniority = legis_cg_seniority1
+)
+
+
+# ----- extract coefficient and clean -----
+# legis
+coef_legis1 <- map_df(names(legis_lm_models), function(name) {
+  tidy(legis_lm_models[[name]]) %>%  
+    mutate(model = name)
+})
+coef_legis_clean1 <- coef_legis1 %>%
+  filter(!grepl("Intercept|congress", term))
+
+# ----- estimate and 95% CI -----
+
+p4 <- ggplot(coef_legis_clean1, aes(x = estimate, y = reorder(model, estimate))) +
+  geom_point(size = 3, color = "#2c7fb8") +
+  geom_errorbarh(aes(xmin = estimate - 1.96 * std.error,
+                     xmax = estimate + 1.96 * std.error),
+                 height = 0.2, color = "#2c7fb8") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Coefficient Estimates Across Models",
+    x = "Coefficient Estimate (with 95% CI)",
+    y = "Predictor Variable"
+  )
+save_to_output("legis_lm_single_coefficient_dom.png", plot = p4, width = 8, height = 4, dpi = 300)
+
+```
+
+### robustness check
+
+```{r}
+#| label: dom.percentage robust check
+#| echo: false
+
+
+# 构建模型列表
+model_legis_lm_dom_multiple <- list(
+  "legis_dom" = legis_lm0,
+  "legis_dom1" = legis_lm1,
+  "legis_dom2" = legis_lm2,
+  "legis_dom3" = legis_lm3,
+  "legis_dom4" = legis_lm4
+)
+
+models_legis_lm_dom <- list(
+  "legis_age_dom" = legis_cg_age1,
+  "legis_ideology_dom" = legis_cg_ideology1,
+  "legis_is.republican_dom" = legis_cg_is.republican1,
+  "legis_gender_dom" = legis_cg_gender1,
+  "legis_chamber_dom" = legis_cg_chamber1,
+  "legis_seniority_dom" = legis_cg_seniority1
+)
+
+
+# 运行函数
+plot_lm_diagnostics(model_legis_lm_dom_multiple)
+plot_lm_diagnostics(models_legis_lm_dom)
+
+```
+
+## 6.3 dependent variable: prof_percentage
+
+### 6.3.1 multiple variables regression model
+
+lasso
+
+```{r}
+#| label: prof_percentage lm lasso
+#| echo: false
+
+# legis
+cv_lasso_legis2 <- run_glmnet_selection(legis_cg, prof_percentage ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 1,
+  family = "gaussian")
+cv_ridge_legis2 <- run_glmnet_selection(legis_cg, prof_percentage ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0,
+  family = "gaussian")
+cv_elnet_legis2 <- run_glmnet_selection(legis_cg, prof_percentage ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0.5,
+  family = "gaussian")
+
+```
+
+```{r}
+#| label: prof_percentage lm lasso2
+#| echo: false
+
+# legis
+cv_lasso_legis <- run_glmnet_selection(legis_merged, prof_percentage ~ age + party + ideology + chamber + gender + seniority + high_edu_share + foreign_born_ratio + white_ratio + black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + white_collar_share + blue_collar_share + agriculture_share + median_household_income_that_year + as.factor(congress), alpha = 1,
+  family = "gaussian")
+cv_ridge_legis <- run_glmnet_selection(legis_merged, prof_percentage ~ age + party + ideology + chamber + gender + seniority + high_edu_share + foreign_born_ratio + white_ratio + black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + white_collar_share + blue_collar_share + agriculture_share + median_household_income_that_year + as.factor(congress), alpha = 0,
+  family = "gaussian")
+cv_elnet_legis <- run_glmnet_selection(legis_merged, prof_percentage ~ age + party + ideology + chamber + gender + seniority + high_edu_share + foreign_born_ratio + white_ratio + black_or_african_american_ratio + asian_ratio + american_indian_and_alaska_native_ratio + native_hawaiian_and_other_pacific_islander_ratio + white_collar_share + blue_collar_share + agriculture_share + median_household_income_that_year + as.factor(congress), alpha = 0.5,
+  family = "gaussian")
+
+```
+
+models training - legis
+
+```{r}
+#| label: prof.percentage lm mul3
+#| echo: false
+
+# original
+legis_lm01 <- lm(prof_percentage ~ age + 
+                     is.republican + ideology + seniority+ 
+                     chamber + gender + 
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# adjusted
+legis_lm11 <- lm(prof_percentage ~ age + 
+                     chamber + gender + is.republican 
+                     + as.factor(congress),   data = legis_cg )
+
+legis_lm21 <- lm(prof_percentage ~ age + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_lm31 <- lm(prof_percentage ~ seniority + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_lm41 <- lm(prof_percentage ~ seniority + 
+                     is.republican + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# result
+modelsummary(
+  list(
+    "Legis LM" = legis_lm01,
+    "1" = legis_lm11,
+    "2" = legis_lm21,
+    "3" = legis_lm31,
+    "4" = legis_lm41
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "lmmodels_legis_prof.html"),
+  escape = FALSE
+)
+
+# ---- vif check ----
+vif(legis_lm0)
+vif(legis_lm1)
+vif(legis_lm2)
+vif(legis_lm3)
+vif(legis_lm4)
+```
+
+```{r}
+#| label: prof_and_dom_lmresult_summarize
+#| echo: false
+
+# result
+modelsummary(
+  list(
+    "Legis_dom_is.republican" = legis_lm21,
+    "Legis_dom_ideology" = legis_lm31,
+    "Legis_prof_is.republican" = legis_lm21,
+    "Legis_prof_ideology" = legis_lm31
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "lmmodels_legis_all.html"),
+  escape = FALSE
+)
+```
+
+legis_lm0 marginal effects
+
+```{r}
+#| label: prof.percentage marginal effects legis
+#| echo: false
+
+# 获取变量的预测边际效应
+eff_age1 <- ggpredict(legis_lm0, terms = "age")
+eff_ideo1 <- ggpredict(legis_lm0, terms = "ideology")
+eff_sen1 <- ggpredict(legis_lm0, terms = "seniority")
+eff_gender1 <- ggpredict(legis_lm0, terms = "gender")
+
+# ideology
+p2 <- ggplot(eff_ideo1, aes(x = x, y = predicted)) +
+  geom_line(color = "steelblue", linewidth = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+  labs(
+    x = "Ideology",
+    y = "Predicted Professional Percentage",
+    title = "Marginal Effect of Ideology on Professional Percentage Legis"
+  ) +
+  theme_minimal(base_size = 14)
+save_to_output("ideology_marginal_effect_legis_prof.png", plot = p2, width = 8, height = 4, dpi = 300)
+```
+
+### 6.3.2 single variable regression model
+
+models training - legis
+
+```{r}
+#| label: prof.percentage lm sin2
+#| echo: false
+
+legis_cg_age1 <- lm(prof_percentage ~ age +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_ideology1 <- lm(prof_percentage ~ ideology +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_is.republican1 <- lm(prof_percentage ~ is.republican +
+                     as.factor(congress), 
+               data = legis_cg)
+
+legis_cg_chamber1 <- lm(prof_percentage ~ chamber +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_gender1 <- lm(prof_percentage ~ gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_seniority1 <- lm(prof_percentage ~ seniority +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# result
+modelsummary(
+  list(
+    "1" = legis_cg_age1,
+    "2" = legis_cg_ideology1,
+    "3" = legis_cg_is.republican1,
+    "4" = legis_cg_gender1,
+    "5" = legis_cg_chamber1,
+    "6" = legis_cg_seniority1
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "lmmodel_legis_seperated_prof.html"),
+  escape = FALSE
+)
+```
+
+```{r}
+#| label: prof.percentage lm sin district2
+#| echo: false
+
+legis_single_models <- vars %>%
+  map_df(function(v) {
+    formula_str <- paste0("prof_percentage ~ ", v, " + as.factor(congress)")
+    m <- lm(as.formula(formula_str), data = legis_merged)
+    
+    tidy(m) %>%
+      filter(term == v) %>%
+      mutate(var = v)
+  })
+
+# 查看结果
+legis_single_models %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+# 可视化显著性与方向
+legis_single_models %>%
+  mutate(sig = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    p.value < 0.1 ~ "+",
+    TRUE ~ ""
+  )) %>%
+  ggplot(aes(x = reorder(var, estimate), y = estimate, color = p.value < 0.05)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = estimate - 1.96 * std.error,
+                    ymax = estimate + 1.96 * std.error),
+                width = 0.2) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Variables", 
+       y = "Coefficient (prof_percentage)",
+       title = "Single-variable Linear Regression Results (with Congress FE)")
+```
+
+single variable model coefficient plot
+
+```{r}
+#| label: prof.percentage coefficient plot
+#| echo: false
+
+# ----- model lists -----
+legis_lm_models <- list(
+  age = legis_cg_age1,
+  ideology = legis_cg_ideology1,
+  is_republican = legis_cg_is.republican1,
+  gender = legis_cg_gender1,
+  chamber = legis_cg_chamber1,
+  seniority = legis_cg_seniority1
+)
+
+
+# ----- extract coefficient and clean -----
+# legis
+coef_legis1 <- map_df(names(legis_lm_models), function(name) {
+  tidy(legis_lm_models[[name]]) %>%  
+    mutate(model = name)
+})
+coef_legis_clean1 <- coef_legis1 %>%
+  filter(!grepl("Intercept|congress", term))
+
+# ----- estimate and 95% CI -----
+p4 <- ggplot(coef_legis_clean1, aes(x = estimate, y = reorder(model, estimate))) +
+  geom_point(size = 3, color = "#2c7fb8") +
+  geom_errorbarh(aes(xmin = estimate - 1.96 * std.error,
+                     xmax = estimate + 1.96 * std.error),
+                 height = 0.2, color = "#2c7fb8") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Coefficient Estimates Across Models",
+    x = "Coefficient Estimate (with 95% CI)",
+    y = "Predictor Variable"
+  )
+save_to_output("legis_lm_single_coefficient_prof.png", plot = p4, width = 8, height = 4, dpi = 300)
+
+```
+
+### robustness check
+
+```{r}
+#| label: prof.percentage robust check
+#| echo: false
+
+# 构建模型列表
+model_legis_lm_dom_multiple <- list(
+  "legis_dom" = legis_lm0,
+  "legis_dom1" = legis_lm1,
+  "legis_dom2" = legis_lm2,
+  "legis_dom3" = legis_lm3,
+  "legis_dom4" = legis_lm4
+)
+
+models_legis_lm_dom <- list(
+  "legis_age_dom" = legis_cg_age1,
+  "legis_ideology_dom" = legis_cg_ideology1,
+  "legis_is.republican_dom" = legis_cg_is.republican1,
+  "legis_gender_dom" = legis_cg_gender1,
+  "legis_chamber_dom" = legis_cg_chamber1,
+  "legis_seniority_dom" = legis_cg_seniority1
+)
+
+
+# 运行函数
+plot_lm_diagnostics(model_legis_lm_dom_multiple)
+plot_lm_diagnostics(models_legis_lm_dom)
+```
+
+## 6.4 dependent variable: intl_percentage
+
+### 6.4.1 multiple variables regression model
+
+lasso
+
+```{r}
+#| label: intl_percentage logit mul1
+#| echo: false
+# legis
+cv_lasso_legis3 <- run_glmnet_selection(legis_cg, intl_percentage ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 1,
+  family = "gaussian")
+cv_ridge_legis3 <- run_glmnet_selection(legis_cg, intl_percentage ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0,
+  family = "gaussian")
+cv_elnet_legis3 <- run_glmnet_selection(legis_cg, intl_percentage ~ age + party + ideology + chamber + gender + seniority + as.factor(congress), alpha = 0.5,
+  family = "gaussian")
+
+```
+
+models training - legis
+
+```{r}
+#| label: intl.percentage lm mul3
+#| echo: false
+
+# original
+legis_lm0 <- lm(intl_percentage ~ age + 
+                     is.republican + ideology + seniority+ 
+                     chamber + gender + 
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# adjusted
+legis_lm1 <- lm(intl_percentage ~ age + 
+                     chamber + gender + is.republican 
+                     + as.factor(congress),   data = legis_cg )
+
+legis_lm2 <- lm(intl_percentage ~ age + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_lm3 <- lm(intl_percentage ~ seniority + 
+                     ideology + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_lm4 <- lm(intl_percentage ~ seniority + 
+                     is.republican + 
+                     chamber + gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# result
+modelsummary(
+  list(
+    "Legis LM" = legis_lm0,
+    "1" = legis_lm1,
+    "2" = legis_lm2,
+    "3" = legis_lm3,
+    "4" = legis_lm4
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "lmmodels_legis_intl.html"),
+  escape = FALSE
+)
+
+# ---- vif check ----
+vif(legis_lm0)
+vif(legis_lm1)
+vif(legis_lm2)
+vif(legis_lm3)
+vif(legis_lm4)
+```
+
+legis_lm0 marginal effects
+
+```{r}
+#| label: intl.percentage marginal effects legis
+#| echo: false
+
+# 获取变量的预测边际效应
+eff_age1 <- ggpredict(legis_lm0, terms = "age")
+eff_ideo1 <- ggpredict(legis_lm0, terms = "ideology")
+eff_sen1 <- ggpredict(legis_lm0, terms = "seniority")
+eff_gender1 <- ggpredict(legis_lm0, terms = "gender")
+
+# ideology
+p2 <- ggplot(eff_ideo1, aes(x = x, y = predicted)) +
+  geom_line(color = "steelblue", linewidth = 1.2) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+  labs(
+    x = "Ideology",
+    y = "Predicted International Percentage",
+    title = "Marginal Effect of Ideology on International Percentage Legis"
+  ) +
+  theme_minimal(base_size = 14)
+save_to_output("ideology_marginal_effect_legis_intl.png", plot = p2, width = 8, height = 4, dpi = 300)
+```
+
+### 6.4.2 single variable regression model
+
+models training - legis
+
+```{r}
+#| label: intl.percentage lm sin2
+#| echo: false
+
+legis_cg_age1 <- lm(intl_percentage ~ age +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_ideology1 <- lm(intl_percentage ~ ideology +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_is.republican1 <- lm(intl_percentage ~ is.republican +
+                     as.factor(congress), 
+               data = legis_cg)
+
+legis_cg_chamber1 <- lm(intl_percentage ~ chamber +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_gender1 <- lm(intl_percentage ~ gender +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+legis_cg_seniority1 <- lm(intl_percentage ~ seniority +
+                     as.factor(congress), 
+                   data = legis_cg)
+
+# result
+modelsummary(
+  list(
+    "1" = legis_cg_age1,
+    "2" = legis_cg_ideology1,
+    "3" = legis_cg_is.republican1,
+    "4" = legis_cg_gender1,
+    "5" = legis_cg_chamber1,
+    "6" = legis_cg_seniority1
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "lmmodel_legis_seperated_intl.html"),
+  escape = FALSE
+)
+```
+
+```{r}
+#| label: intl.percentage lm sin district2
+#| echo: false
+
+legis_single_models <- vars %>%
+  map_df(function(v) {
+    formula_str <- paste0("intl_percentage ~ ", v, " + as.factor(congress)")
+    m <- lm(as.formula(formula_str), data = legis_merged)
+    
+    tidy(m) %>%
+      filter(term == v) %>%
+      mutate(var = v)
+  })
+
+# 查看结果
+legis_single_models %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+# 可视化显著性与方向
+legis_single_models %>%
+  mutate(sig = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    p.value < 0.1 ~ "+",
+    TRUE ~ ""
+  )) %>%
+  ggplot(aes(x = reorder(var, estimate), y = estimate, color = p.value < 0.05)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = estimate - 1.96 * std.error,
+                    ymax = estimate + 1.96 * std.error),
+                width = 0.2) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Variables", 
+       y = "Coefficient (prof_percentage)",
+       title = "Single-variable Linear Regression Results (with Congress FE)")
+
+```
+
+single variable model coefficient plot
+
+```{r}
+#| label: intl.percentage coefficient plot
+#| echo: false
+
+# ----- model lists -----
+legis_lm_models <- list(
+  age = legis_cg_age1,
+  ideology = legis_cg_ideology1,
+  is_republican = legis_cg_is.republican1,
+  gender = legis_cg_gender1,
+  chamber = legis_cg_chamber1,
+  seniority = legis_cg_seniority1
+)
+
+
+# ----- extract coefficient and clean -----
+# legis
+coef_legis1 <- map_df(names(legis_lm_models), function(name) {
+  tidy(legis_lm_models[[name]]) %>%  
+    mutate(model = name)
+})
+coef_legis_clean1 <- coef_legis1 %>%
+  filter(!grepl("Intercept|congress", term))
+
+# ----- estimate and 95% CI -----
+p4 <- ggplot(coef_legis_clean1, aes(x = estimate, y = reorder(model, estimate))) +
+  geom_point(size = 3, color = "#2c7fb8") +
+  geom_errorbarh(aes(xmin = estimate - 1.96 * std.error,
+                     xmax = estimate + 1.96 * std.error),
+                 height = 0.2, color = "#2c7fb8") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray40") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Coefficient Estimates Across Models",
+    x = "Coefficient Estimate (with 95% CI)",
+    y = "Predictor Variable"
+  )
+save_to_output("legis_lm_single_coefficient_intl.png", plot = p4, width = 8, height = 4, dpi = 300)
+
+```
+
+### robustness check
+
+```{r}
+#| label: intl.percentage robust check
+#| echo: false
+
+# 构建模型列表
+model_legis_lm_dom_multiple <- list(
+  "legis_dom" = legis_lm0,
+  "legis_dom1" = legis_lm1,
+  "legis_dom2" = legis_lm2,
+  "legis_dom3" = legis_lm3,
+  "legis_dom4" = legis_lm4
+)
+
+models_legis_lm_dom <- list(
+  "legis_age_dom" = legis_cg_age1,
+  "legis_ideology_dom" = legis_cg_ideology1,
+  "legis_is.republican_dom" = legis_cg_is.republican1,
+  "legis_gender_dom" = legis_cg_gender1,
+  "legis_chamber_dom" = legis_cg_chamber1,
+  "legis_seniority_dom" = legis_cg_seniority1
+)
+
+
+# 运行函数
+plot_lm_diagnostics(model_legis_lm_dom_multiple)
+plot_lm_diagnostics(models_legis_lm_dom)
+```
+
+## 6.5 interaction model
+
+### 6.5.1 dependent variable: is.dom
+
+legis
+
+```{r}
+#| label: is.dom interaction legis
+#| echo: false
+
+# ideology * gender
+legis_inter1 <- glm(is.dom ~ age + seniority + is.republican + chamber + ideology*gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+analyze_logit_model(legis_inter1)
+
+# ideology * chamber
+legis_inter2 <- glm(is.dom ~ age + seniority + is.republican*gender + chamber + ideology + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+analyze_logit_model(legis_inter2)
+
+
+# is.republican * gender
+legis_inter3 <- glm(is.dom ~ age + seniority + ideology + chamber + is.republican*gender + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+analyze_logit_model(legis_inter3)
+
+# is.republican * chamber
+legis_inter4 <- glm(is.dom ~ age + seniority + ideology + gender + is.republican*chamber + as.factor(congress), 
+                   data = legis_cg, 
+                   family = binomial())
+analyze_logit_model(legis_inter4)
+
+
+# effects
+interact_plot(legis_inter1, pred = ideology, modx = gender, interval = TRUE)
+sim_slopes(legis_inter1, pred = ideology, modx = gender)
+
+interact_plot(legis_inter2, pred = ideology, modx = chamber, interval = TRUE)
+sim_slopes(legis_inter2, pred = ideology, modx = chamber)
+
+interact_plot(legis_inter3, pred = is.republican, modx = gender, interval = TRUE)
+sim_slopes(legis_inter3, pred = is.republican, modx = gender)
+
+interact_plot(legis_inter4, pred = is.republican, modx = chamber, interval = TRUE)
+sim_slopes(legis_inter4, pred = is.republican, modx = chamber)
+
+```
+
+### 6.5.2 dependent variable: dom_percentage(demo)
+
+legis
+
+```{r}
+#| label: dom.percentage interaction legis_demo
+#| echo: false
+
+# ideology * gender
+legis_lm_inter1 <- lm(dom_percentage ~ age + chamber + is.republican + ideology*gender + as.factor(congress),
+                   data = legis_cg)
+summary(legis_lm_inter1)
+
+# ideology * chamber
+legis_lm_inter2 <- lm(dom_percentage ~ age + ideology*chamber + is.republican + gender + as.factor(congress),
+                   data = legis_cg)
+summary(legis_lm_inter2)
+
+# is.republican * gender
+legis_lm_inter3 <- lm(is.dom ~ age + seniority + ideology + chamber + is.republican*gender + as.factor(congress), 
+                   data = legis_cg)
+summary(legis_lm_inter3)
+
+# is.republican * chamber
+legis_lm_inter4 <- lm(is.dom ~ age + seniority + ideology + gender + is.republican*chamber + as.factor(congress), 
+                   data = legis_cg)
+summary(legis_lm_inter4)
+
+# ---- effect ----
+interact_plot(legis_lm_inter1, pred = ideology, modx = gender, data = legis_cg)
+interact_plot(legis_lm_inter2, pred = ideology, modx = chamber, data = legis_cg)
+interact_plot(legis_lm_inter3, pred = is.republican, modx = gender, data = legis_cg)
+interact_plot(legis_lm_inter4, pred = is.republican, modx = chamber, data = legis_cg)
+```
+
+### 6.5.3 dependent variable: dom (district)
+
+```{r}
+#| label: dom.percentage interaction legis_district
+#| echo: false
+
+# high_edu_share * gender
+legis_lm_inter1 <- lm(dom_percentage ~ age + chamber + ideology + high_edu_share*party + gender + as.factor(congress),
+                   data = legis_merged)
+summary(legis_lm_inter1)
+
+# blue collar * party
+legis_lm_inter2 <- lm(dom_percentage ~ age + ideology + blue_collar_share*party + gender + as.factor(congress),
+                   data = legis_merged)
+summary(legis_lm_inter2)
+
+# white collar * party
+legis_lm_inter3 <- lm(dom_percentage ~ age + ideology + white_collar_share*party + gender + as.factor(congress),
+                   data = legis_merged)
+summary(legis_lm_inter3)
+
+# white_ratio * party
+legis_lm_inter4 <- lm(dom_percentage ~ age + seniority + ideology + chamber + white_ratio*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter4)
+
+# asian_ratio * party
+legis_lm_inter5 <- lm(dom_percentage ~ age + seniority + ideology + chamber + asian_ratio*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter5)
+
+# black_ratio * party
+legis_lm_inter6 <- lm(dom_percentage ~ age + seniority + ideology + chamber + black_or_african_american_ratio*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter6)
+
+# median_household_income * party
+legis_lm_inter7 <- lm(dom_percentage ~ age + seniority + ideology + chamber + median_household_income_that_year*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter7)
+
+
+# median_household_income * party
+legis_lm_inter8 <- lm(dom_percentage ~ age + seniority + ideology + chamber + foreign_born_ratio*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter8)
+
+# ---- effect ----
+interact_plot(legis_lm_inter1, pred = high_edu_share, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter2, pred = blue_collar_share, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter3, pred = white_collar_share, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter4, pred = white_ratio, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter5, pred = asian_ratio, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter6, pred = black_or_african_american_ratio, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter7, pred = median_household_income_that_year, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter8, pred = foreign_born_ratio, modx = party, data = legis_merged)
+```
+
+### 6.5.4 dependent variable: prof(district)
+
+district variable\*party and gender
+
+```{r}
+#| label: prof.percentage interaction legis
+#| echo: false
+
+# high_edu_share * gender
+legis_lm_inter1 <- lm(prof_percentage ~ age + chamber + ideology + high_edu_share*party + gender + as.factor(congress),
+                   data = legis_merged)
+summary(legis_lm_inter1)
+
+# blue collar * party
+legis_lm_inter2 <- lm(prof_percentage ~ age + ideology + blue_collar_share*party + gender + as.factor(congress),
+                   data = legis_merged)
+summary(legis_lm_inter2)
+
+# white collar * party
+legis_lm_inter3 <- lm(prof_percentage ~ age + ideology + white_collar_share*party + gender + as.factor(congress),
+                   data = legis_merged)
+summary(legis_lm_inter3)
+
+# white_ratio * party
+legis_lm_inter4 <- lm(prof_percentage ~ age + seniority + ideology + chamber + white_ratio*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter4)
+
+# asian_ratio * party
+legis_lm_inter5 <- lm(prof_percentage ~ age + seniority + ideology + chamber + asian_ratio*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter5)
+
+# black_ratio * party
+legis_lm_inter6 <- lm(prof_percentage ~ age + seniority + ideology + chamber + black_or_african_american_ratio*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter6)
+
+# median_household_income * party
+legis_lm_inter7 <- lm(prof_percentage ~ age + seniority + ideology + chamber + median_household_income_that_year*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter7)
+
+
+# median_household_income * party
+legis_lm_inter7 <- lm(prof_percentage ~ age + seniority + ideology + chamber + median_household_income_that_year*party +gender + as.factor(congress), 
+                   data = legis_merged)
+summary(legis_lm_inter7)
+
+# ---- effect ----
+interact_plot(legis_lm_inter1, pred = high_edu_share, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter2, pred = blue_collar_share, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter3, pred = white_collar_share, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter4, pred = white_ratio, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter5, pred = asian_ratio, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter6, pred = black_or_african_american_ratio, modx = party, data = legis_merged)
+interact_plot(legis_lm_inter7, pred = median_household_income_that_year, modx = party, data = legis_merged)
+```
+
+## 6.6 district data multilateral - liner regression
+
+define function
+
+```{r}
+#| label: district data regression funtion
+#| echo: false
+
+
+# 定义一个函数用于重复分析流程
+run_single_var_reg <- function(dep_var, df, vars) {
+  map_df(vars, function(v) {
+    # 先删掉 NA
+    df_sub <- df %>%
+      dplyr::select(all_of(c(dep_var, v, "congress"))) %>%
+      drop_na()
+    
+    # 检查因变量和自变量是否可用
+    if(n_distinct(df_sub[[v]]) < 2) {
+      return(tibble(var = v, estimate = NA, std.error = NA, statistic = NA, p.value = NA))
+    }
+    
+    if(is.factor(df_sub[[v]]) && nlevels(df_sub[[v]]) < 2) {
+      return(tibble(var = v, estimate = NA, std.error = NA, statistic = NA, p.value = NA))
+    }
+    
+    # 根据 congress 水平数选择公式
+    if("congress" %in% names(df_sub) && n_distinct(df_sub$congress) > 1) {
+      formula_str <- paste0(dep_var, " ~ ", v, " + as.factor(congress)")
+    } else {
+      formula_str <- paste0(dep_var, " ~ ", v)
+    }
+    
+    # 回归
+    m <- lm(as.formula(formula_str), data = df_sub)
+    
+    tidy(m) %>%
+      filter(term == v) %>%
+      mutate(var = v)
+  })
+}
+
+# 定义可视化函数
+plot_reg_results <- function(df, dep_label, title_prefix = "Adver Regression") {
+  df %>%
+    mutate(sig = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      p.value < 0.1   ~ "+",
+      TRUE ~ ""
+    )) %>%
+    ggplot(aes(x = reorder(var, estimate), y = estimate, color = p.value < 0.05)) +
+    geom_point(size = 3) +
+    geom_errorbar(aes(ymin = estimate - 1.96 * std.error,
+                      ymax = estimate + 1.96 * std.error),
+                  width = 0.2) +
+    coord_flip() +
+    theme_minimal() +
+    labs(
+      x = "Variables",
+      y = paste0("Coefficient (", dep_label, ")"),
+      title = paste0(title_prefix, " — ", dep_label)
+    )
+}
+
+```
+
+### 6.6.1 party level
+
+```{r}
+#| label: district_data_analysis_legis_party:democratics
+#| echo: false
+
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(dem_legis[[.x]], na.rm = TRUE) > 1)
+]
+
+# 1. 筛选民主党参议员所在选区
+dem_legis <- legis_merged %>%
+  filter(party == "Democratic")
+
+# 4. 分别计算三种行为模式的回归结果
+legis_dem_dom <- run_single_var_reg("dom_percentage",  dem_legis, valid_vars)
+legis_dem_prof <- run_single_var_reg("prof_percentage", dem_legis, valid_vars)
+legis_dem_intl <- run_single_var_reg("intl_percentage", dem_legis, valid_vars)
+
+# 6. 输出结果
+legis_dem_dom %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_dem_dom, "dom_percentage")
+
+legis_dem_prof %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_dem_prof, "prof_percentage")
+
+legis_dem_intl %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_dem_intl, "intl_percentage")
+
+```
+
+```{r}
+#| label: district_data_analysis_legis_party:republican
+#| echo: false
+
+# 1. 筛选民主党参议员所在选区
+rep_legis <- legis_merged %>%
+  filter(party == "Republican")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(rep_legis[[.x]], na.rm = TRUE) > 1)
+]
+
+# 4. 分别计算三种行为模式的回归结果
+legis_rep_dom <- run_single_var_reg("dom_percentage",  rep_legis, valid_vars)
+legis_rep_prof <- run_single_var_reg("prof_percentage", rep_legis, valid_vars)
+legis_rep_intl <- run_single_var_reg("intl_percentage", rep_legis, valid_vars)
+
+# 6. 输出结果
+legis_rep_dom %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_rep_dom, "dom_percentage")
+
+legis_rep_prof %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_rep_prof, "prof_percentage")
+
+legis_rep_intl %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_rep_intl, "intl_percentage")
+```
+
+### 6.6.2 chamber level
+
+```{r}
+#| label: district_data_analysis_legis_chamber:house
+#| echo: false
+
+# ==== 1. 筛选众议院议员所在选区 ====
+house_legis <- legis_merged %>%
+  filter(chamber == "house of representatives")
+
+# ==== 2. 仅保留方差大于1的变量 ====
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(house_legis[[.x]], na.rm = TRUE) > 1)
+]
+
+# ==== 5. 分别计算三种行为模式 ====
+legis_house_dom  <- run_single_var_reg("dom_percentage",  house_legis, valid_vars)
+legis_house_prof <- run_single_var_reg("prof_percentage", house_legis, valid_vars)
+legis_house_intl <- run_single_var_reg("intl_percentage", house_legis, valid_vars)
+
+# ==== 6. 输出结果与绘图 ====
+legis_house_dom %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_house_dom, "dom_percentage")
+
+legis_house_prof %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_house_prof, "prof_percentage")
+
+legis_house_intl %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_house_intl, "intl_percentage")
+
+```
+
+```{r}
+#| label: district_data_analysis_legis_chamber:senate
+#| echo: false
+
+# ==== 1. 筛选众议院议员所在选区 ====
+senate_legis <- legis_merged %>%
+  filter(chamber == "senate")
+
+# ==== 2. 仅保留方差大于1的变量 ====
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(senate_legis[[.x]], na.rm = TRUE) > 1)
+]
+
+# ==== 5. 分别计算三种行为模式 ====
+legis_senate_dom  <- run_single_var_reg("dom_percentage",  senate_legis, valid_vars)
+legis_senate_prof <- run_single_var_reg("prof_percentage", senate_legis, valid_vars)
+legis_senate_intl <- run_single_var_reg("intl_percentage", senate_legis, valid_vars)
+
+# ==== 6. 输出结果与绘图 ====
+legis_senate_dom %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_senate_dom, "dom_percentage")
+
+legis_senate_prof %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_senate_prof, "prof_percentage")
+
+legis_senate_intl %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+plot_reg_results(legis_senate_intl, "intl_percentage")
+
+```
+
+### 6.6.3 party+chamber
+
+```{r}
+#| label: district_data_analysis_legis_chamber:senate_dem
+#| echo: false
+
+# 1. 筛选民主党参议员所在选区
+senate_legis_dem <- legis_merged %>%
+  filter(chamber == "senate", party == "Democratic")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(senate_legis_dem[[.x]], na.rm = TRUE) > 1)
+]
+
+# 4. 分别计算三种行为模式的回归结果
+legis_senate_dom_dem  <- run_single_var_reg("dom_percentage",  senate_legis_dem, valid_vars)
+legis_senate_prof_dem <- run_single_var_reg("prof_percentage", senate_legis_dem, valid_vars)
+legis_senate_intl_dem <- run_single_var_reg("intl_percentage", senate_legis_dem, valid_vars)
+
+# 6. 输出结果
+legis_senate_dom_dem %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_senate_dom_dem, "dom_percentage")
+
+legis_senate_prof_dem %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_senate_prof_dem, "prof_percentage")
+
+legis_senate_intl_dem %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_senate_intl_dem, "intl_percentage")
+
+```
+
+```{r}
+#| label: district_data_analysis_legis_chamber:house_dem
+#| echo: false
+
+# 1. 筛选民主党参议员所在选区
+house_legis_dem <- legis_merged %>%
+  filter(chamber == "house of representatives", party == "Democratic")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(house_legis_dem[[.x]], na.rm = TRUE) > 1)
+]
+
+# 3. 分别计算三种行为模式的回归结果
+legis_house_dom_dem  <- run_single_var_reg("dom_percentage",  house_legis_dem, valid_vars)
+legis_house_prof_dem <- run_single_var_reg("prof_percentage", house_legis_dem, valid_vars)
+legis_house_intl_dem <- run_single_var_reg("intl_percentage", house_legis_dem, valid_vars)
+
+
+# 4. 输出结果
+legis_house_dom_dem %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_house_dom_dem, "dom_percentage")
+
+legis_house_prof_dem %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_house_prof_dem, "prof_percentage")
+
+legis_house_intl_dem %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_house_intl_dem, "intl_percentage")
+```
+
+```{r}
+#| label: district_data_analysis_legis_chamber:house_rep
+#| echo: false
+
+# 1. 筛选民主党参议员所在选区
+house_legis_rep <- legis_merged %>%
+  filter(chamber == "house of representatives", party == "Republican")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(house_legis_rep[[.x]], na.rm = TRUE) > 1)
+]
+
+# 3. 分别计算三种行为模式的回归结果
+legis_house_dom_rep  <- run_single_var_reg("dom_percentage",  house_legis_rep, valid_vars)
+legis_house_prof_rep <- run_single_var_reg("prof_percentage", house_legis_rep, valid_vars)
+legis_house_intl_rep <- run_single_var_reg("intl_percentage", house_legis_rep, valid_vars)
+
+
+# 4. 输出结果
+legis_house_dom_rep %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_house_dom_rep, "dom_percentage")
+
+legis_house_prof_rep %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_house_prof_rep, "prof_percentage")
+
+legis_house_intl_rep %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_house_intl_rep, "intl_percentage")
+```
+
+```{r}
+#| label: district_data_analysis_legis_chamber:senate_rep
+#| echo: false
+
+# 1. 筛选民主党参议员所在选区
+senate_legis_rep <- legis_merged %>%
+  filter(chamber == "senate", party == "Republican")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(senate_legis_rep[[.x]], na.rm = TRUE) > 1)
+]
+
+# 3. 分别计算三种行为模式的回归结果
+legis_senate_dom_rep  <- run_single_var_reg("dom_percentage",  senate_legis_rep, valid_vars)
+legis_senate_prof_rep <- run_single_var_reg("prof_percentage", senate_legis_rep, valid_vars)
+legis_senate_intl_rep <- run_single_var_reg("intl_percentage", senate_legis_rep, valid_vars)
+
+
+# 4. 输出结果
+legis_senate_dom_rep %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_senate_dom_rep, "dom_percentage")
+
+legis_senate_prof_rep %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_senate_prof_rep, "prof_percentage")
+
+legis_senate_intl_rep %>%
+  dplyr::select(var, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+plot_reg_results(legis_senate_intl_rep, "intl_percentage")
+
+```
+
+### 6.6.4 congress
+
+```{r}
+#| label: district_data_analysis_legis_congress_115
+#| echo: false
+
+# 1. 筛选 116 届
+legis_115 <- legis_merged %>%
+  filter(congress == "115")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(legis_115[[.x]], na.rm = TRUE) > 1)
+]
+
+# 4. 运行三种行为模式
+legis_115_dom  <- run_single_var_reg("dom_percentage",  legis_115, valid_vars)
+legis_115_prof <- run_single_var_reg("prof_percentage", legis_115, valid_vars)
+legis_115_intl <- run_single_var_reg("intl_percentage", legis_115, valid_vars)
+
+# 5. 输出 tidy 表（按 p 值排序）
+legis_115_dom %>%  arrange(p.value)
+legis_115_prof %>% arrange(p.value)
+legis_115_intl %>% arrange(p.value)
+
+# 7. 绘制三种行为模式的系数图
+plot_reg_results(legis_115_dom, "dom_percentage")
+plot_reg_results(legis_115_prof, "prof_percentage")
+plot_reg_results(legis_115_intl, "intl_percentage")
+```
+
+```{r}
+#| label: district_data_analysis_legis_congress_116
+#| echo: false
+
+# 1. 筛选 116 届
+legis_116 <- legis_merged %>%
+  filter(congress == "116")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(legis_116[[.x]], na.rm = TRUE) > 1)
+]
+
+# 4. 运行三种行为模式
+legis_116_dom  <- run_single_var_reg("dom_percentage",  legis_116, valid_vars)
+legis_116_prof <- run_single_var_reg("prof_percentage", legis_116, valid_vars)
+legis_116_intl <- run_single_var_reg("intl_percentage", legis_116, valid_vars)
+
+# 5. 输出 tidy 表（按 p 值排序）
+legis_116_dom %>%  arrange(p.value)
+legis_116_prof %>% arrange(p.value)
+legis_116_intl %>% arrange(p.value)
+
+# 7. 绘制三种行为模式的系数图
+plot_reg_results(legis_116_dom, "dom_percentage")
+plot_reg_results(legis_116_prof, "prof_percentage")
+plot_reg_results(legis_116_intl, "intl_percentage")
+
+```
+
+```{r}
+#| label: district_data_analysis_legis_congress_117
+#| echo: false
+
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(legis_117[[.x]], na.rm = TRUE) > 1)
+]
+
+# 4. 运行三种行为模式
+legis_117_dom  <- run_single_var_reg("dom_percentage",  legis_117, valid_vars)
+legis_117_prof <- run_single_var_reg("prof_percentage", legis_117, valid_vars)
+legis_117_intl <- run_single_var_reg("intl_percentage", legis_117, valid_vars)
+
+# 5. 输出 tidy 表（按 p 值排序）
+legis_117_dom %>%  arrange(p.value)
+legis_117_prof %>% arrange(p.value)
+legis_117_intl %>% arrange(p.value)
+
+# 7. 绘制三种行为模式的系数图
+plot_reg_results(legis_117_dom, "dom_percentage")
+plot_reg_results(legis_117_prof, "prof_percentage")
+plot_reg_results(legis_117_intl, "intl_percentage")
+
+```
+
+```{r}
+#| label: district_data_analysis_legis_congress_118
+#| echo: false
+
+# 1. 筛选 116 届
+legis_118 <- legis_merged %>%
+  filter(congress == "118")
+
+# 2. 保留方差大于1的变量（避免常数列）
+valid_vars <- vars_to_check[
+  map_lgl(vars_to_check, ~ n_distinct(legis_118[[.x]], na.rm = TRUE) > 1)
+]
+
+# 4. 运行三种行为模式
+legis_118_dom  <- run_single_var_reg("dom_percentage",  legis_118, valid_vars)
+legis_118_prof <- run_single_var_reg("prof_percentage", legis_118, valid_vars)
+legis_118_intl <- run_single_var_reg("intl_percentage", legis_118, valid_vars)
+
+# 5. 输出 tidy 表（按 p 值排序）
+legis_118_dom %>%  arrange(p.value)
+legis_118_prof %>% arrange(p.value)
+legis_118_intl %>% arrange(p.value)
+
+# 7. 绘制三种行为模式的系数图
+plot_reg_results(legis_118_dom, "dom_percentage")
+plot_reg_results(legis_118_prof, "prof_percentage")
+plot_reg_results(legis_118_intl, "intl_percentage")
+```
+
+## 6.7 district analysis - logit regression
+
+### 6.7.1 focus on edu
+
+```{r}
+#| label: district_analysis_logit_legis_dem_edu
+#| echo: false
+
+# 一、核心模型（最简版本）
+
+model11 <- glm(
+  is.dom ~ high_edu_share,
+  data = dem_legis,
+  family = binomial(link = "logit")
+)
+
+# 二、扩展控制模型（控制选区结构异质性）
+model21 <- glm(
+  is.dom ~ high_edu_share + 
+    median_household_income_that_year + foreign_born_ratio + asian_ratio +
+    white_ratio + black_or_african_american_ratio + agriculture_share,
+  data = dem_legis,
+  family = binomial(link = "logit")
+)
+
+model21a <- glm(
+  is.dom ~ high_edu_share + foreign_born_ratio + asian_ratio +
+    white_ratio + black_or_african_american_ratio + agriculture_share,
+  data = dem_legis,
+  family = binomial(link = "logit")
+)
+
+
+
+# 三、稳健模型（控制议员层级变量）
+# ideology
+model31 <- glm(
+  is.dom ~ high_edu_share + 
+    median_household_income_that_year + foreign_born_ratio + asian_ratio +
+    white_ratio + black_or_african_american_ratio + agriculture_share + 
+    ideology  + gender_numeric + age ,
+  data = dem_legis,
+  family = binomial(link = "logit")
+)
+
+
+# 四、模型诊断与比较
+# 1. 检查多重共线性
+vif(model21)
+vif(model31)
+cor(dplyr::select(dem_legis, high_edu_share, median_household_income_that_year, white_collar_share), use = "complete.obs")
+
+# 2. 模型比较表
+modelsummary(
+  list(
+    "Model 1: Simple-education" = model11,
+    "Model 2: District controls-edu" = model21,
+    "Model 2a: District controls(!income)" = model21a,
+    "Model 4: + Individual controls(ideo)" = model31
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "logit_legis_dem_district_edu.html"),
+  escape = FALSE
+)
+
+# 五、可视化：边际效应（Marginal Effects）
+# 高等教育比例的边际效应
+edu_effect <- ggpredict(model21, terms = "high_edu_share [all]")
+plot(edu_effect) +
+  labs(
+    title = "Marginal Effect (control district)",
+    x = "High Education Share",
+    y = "Predicted Probability (is.dom)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# 高等教育比例的边际效应（去掉income）
+edu_effect <- ggpredict(model21a, terms = "high_edu_share [all]")
+plot(edu_effect) +
+  labs(
+    title = "Marginal Effect (control district, !income)",
+    x = "High Education Share",
+    y = "Predicted Probability (is.dom)"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+```
+
+```{r}
+#| label: district_analysis_logit_legis_rep_edu
+#| echo: false
+
+# 一、核心模型（最简版本）
+
+model11 <- glm(
+  is.dom ~ high_edu_share,
+  data = rep_legis,
+  family = binomial(link = "logit")
+)
+
+# 二、扩展控制模型（控制选区结构异质性）
+model21 <- glm(
+  is.dom ~ high_edu_share + 
+    median_household_income_that_year + foreign_born_ratio + asian_ratio +
+    white_ratio + black_or_african_american_ratio + agriculture_share,
+  data = rep_legis,
+  family = binomial(link = "logit")
+)
+
+model21a <- glm(
+  is.dom ~ high_edu_share +  foreign_born_ratio + asian_ratio +
+    white_ratio + black_or_african_american_ratio + agriculture_share,
+  data = rep_legis,
+  family = binomial(link = "logit")
+)
+
+
+# 三、稳健模型（控制议员层级变量）
+# ideology
+model31 <- glm(
+  is.dom ~ high_edu_share + 
+    median_household_income_that_year + foreign_born_ratio + asian_ratio +
+    white_ratio + black_or_african_american_ratio + agriculture_share + 
+    ideology  + gender_numeric + age ,
+  data = rep_legis,
+  family = binomial(link = "logit")
+)
+
+
+# 四、模型诊断与比较
+# 1. 检查多重共线性
+vif(model21)
+vif(model31)
+
+# 2. 模型比较表
+# 2. 模型比较表
+modelsummary(
+  list(
+    "Model 1: Simple-education" = model11,
+    "Model 2: District controls-edu" = model21,
+    "Model 2a: District controls(!income)" = model21a,
+    "Model 4: + Individual controls(ideo)" = model31
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "logit_legis_rep_district_edu.html"),
+  escape = FALSE
+)
+
+# 五、可视化：边际效应（Marginal Effects）
+# 高等教育比例的边际效应
+edu_effect <- ggpredict(model21, terms = "high_edu_share [all]")
+plot(edu_effect) +
+  labs(
+    title = "Marginal Effect (control district)",
+    x = "High Education Share",
+    y = "Predicted Probability (is.dom)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# 高等教育比例的边际效应（去掉income）
+edu_effect <- ggpredict(model21a, terms = "high_edu_share [all]")
+plot(edu_effect) +
+  labs(
+    title = "Marginal Effect (control district, !income)",
+    x = "High Education Share",
+    y = "Predicted Probability (is.dom)"
+  ) +
+  theme_minimal(base_size = 14)
+
+# 白领比例的边际效应
+eduwhite_effect <- ggpredict(model21, terms = "agriculture_share [all]")
+plot(eduwhite_effect) +
+  labs(
+    title = "Marginal Effect ",
+    x = "agriculture_share",
+    y = "Predicted Probability (is.dom)"
+  ) +
+  theme_minimal(base_size = 14)
+```
+
+```{r}
+#| label: district_analysis_logit_edu_check
+#| echo: false
+
+
+model_cross2 <- glm(
+  is.dom ~ high_edu_share * party + foreign_born_ratio +
+    median_household_income_that_year +
+    white_ratio + black_or_african_american_ratio + agriculture_share,
+  data = legis_merged,
+  family = binomial
+)
+
+model_cross3 <- glm(
+  is.dom ~ high_edu_share * party + foreign_born_ratio + 
+    white_ratio + black_or_african_american_ratio + agriculture_share,
+  data = legis_merged,
+  family = binomial
+)
+
+modelsummary(
+  list(
+    "Model 1: Legis cross" = model_cross2,
+    "Model 2: Legis cross (!income)" = model_cross3
+  ),
+  fmt = 3,
+  stars = TRUE,
+  output = file.path(output_dir, "logit_district_edu_cross.html"),
+  escape = FALSE
+)
+
+```

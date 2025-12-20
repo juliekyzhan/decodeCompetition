@@ -1,0 +1,1087 @@
+<!-- preamble start -->
+
+    <script>
+
+      function styleCell_kcr8jy7fls8tipsi5lns(i, j, css_id) {
+          var table = document.getElementById("tinytable_kcr8jy7fls8tipsi5lns");
+          var cell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+          if (cell) {
+              console.log(`Styling cell at (${i}, ${j}) with class ${css_id}`);
+              cell.classList.add(css_id);
+          } else {
+              console.warn(`Cell at (${i}, ${j}) not found.`);
+          }
+      }
+      function spanCell_kcr8jy7fls8tipsi5lns(i, j, rowspan, colspan) {
+        var table = document.getElementById("tinytable_kcr8jy7fls8tipsi5lns");
+        const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+        if (!targetCell) {
+          console.warn(`Cell at (${i}, ${j}) not found.`);
+        }
+
+        // Get all cells that need to be removed
+        const cellsToRemove = [];
+        for (let r = 0; r < rowspan; r++) {
+          for (let c = 0; c < colspan; c++) {
+            if (r === 0 && c === 0) continue; // Skip the target cell
+            const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
+            if (cell) {
+              cellsToRemove.push(cell);
+            }
+          }
+        }
+
+        // Remove all cells
+        cellsToRemove.forEach(cell => cell.remove());
+
+        // Set rowspan and colspan of the target cell if it exists
+        if (targetCell) {
+          targetCell.rowSpan = rowspan;
+          targetCell.colSpan = colspan;
+        }
+      }
+      // tinytable span after
+      window.addEventListener('load', function () {
+          var cellsToStyle = [
+            // tinytable style arrays after
+          { positions: [ { i: '199', j: 1 }, { i: '199', j: 2 },  ], css_id: 'tinytable_css_96m7r1nb1md7amh5zqz5',}, 
+          { positions: [ { i: '192', j: 2 }, { i: '192', j: 1 },  ], css_id: 'tinytable_css_7yc4nohazmtah784rjg8',}, 
+          { positions: [ { i: '2', j: 1 }, { i: '3', j: 1 }, { i: '4', j: 1 }, { i: '1', j: 1 }, { i: '6', j: 1 }, { i: '7', j: 1 }, { i: '8', j: 1 }, { i: '5', j: 1 }, { i: '10', j: 1 }, { i: '11', j: 1 }, { i: '12', j: 1 }, { i: '9', j: 1 }, { i: '14', j: 1 }, { i: '15', j: 1 }, { i: '16', j: 1 }, { i: '17', j: 1 }, { i: '18', j: 1 }, { i: '19', j: 1 }, { i: '20', j: 1 }, { i: '21', j: 1 }, { i: '22', j: 1 }, { i: '23', j: 1 }, { i: '24', j: 1 }, { i: '25', j: 1 }, { i: '13', j: 1 }, { i: '27', j: 1 }, { i: '28', j: 1 }, { i: '29', j: 1 }, { i: '30', j: 1 }, { i: '31', j: 1 }, { i: '32', j: 1 }, { i: '33', j: 1 }, { i: '34', j: 1 }, { i: '35', j: 1 }, { i: '36', j: 1 }, { i: '37', j: 1 }, { i: '38', j: 1 }, { i: '26', j: 1 }, { i: '40', j: 1 }, { i: '41', j: 1 }, { i: '42', j: 1 }, { i: '43', j: 1 }, { i: '44', j: 1 }, { i: '45', j: 1 }, { i: '46', j: 1 }, { i: '47', j: 1 }, { i: '48', j: 1 }, { i: '49', j: 1 }, { i: '50', j: 1 }, { i: '51', j: 1 }, { i: '52', j: 1 }, { i: '53', j: 1 }, { i: '54', j: 1 }, { i: '55', j: 1 }, { i: '56', j: 1 }, { i: '57', j: 1 }, { i: '58', j: 1 }, { i: '59', j: 1 }, { i: '60', j: 1 }, { i: '61', j: 1 }, { i: '62', j: 1 }, { i: '63', j: 1 }, { i: '64', j: 1 }, { i: '65', j: 1 }, { i: '66', j: 1 }, { i: '67', j: 1 }, { i: '68', j: 1 }, { i: '69', j: 1 }, { i: '70', j: 1 }, { i: '71', j: 1 }, { i: '72', j: 1 }, { i: '73', j: 1 }, { i: '74', j: 1 }, { i: '75', j: 1 }, { i: '76', j: 1 }, { i: '77', j: 1 }, { i: '78', j: 1 }, { i: '39', j: 1 }, { i: '80', j: 1 }, { i: '81', j: 1 }, { i: '82', j: 1 }, { i: '83', j: 1 }, { i: '84', j: 1 }, { i: '85', j: 1 }, { i: '86', j: 1 }, { i: '87', j: 1 }, { i: '88', j: 1 }, { i: '89', j: 1 }, { i: '90', j: 1 }, { i: '91', j: 1 }, { i: '92', j: 1 }, { i: '93', j: 1 }, { i: '94', j: 1 }, { i: '95', j: 1 }, { i: '96', j: 1 }, { i: '97', j: 1 }, { i: '98', j: 1 }, { i: '99', j: 1 }, { i: '100', j: 1 }, { i: '101', j: 1 }, { i: '102', j: 1 }, { i: '103', j: 1 }, { i: '104', j: 1 }, { i: '105', j: 1 }, { i: '106', j: 1 }, { i: '107', j: 1 }, { i: '108', j: 1 }, { i: '109', j: 1 }, { i: '110', j: 1 }, { i: '111', j: 1 }, { i: '112', j: 1 }, { i: '113', j: 1 }, { i: '114', j: 1 }, { i: '115', j: 1 }, { i: '116', j: 1 }, { i: '117', j: 1 }, { i: '118', j: 1 }, { i: '119', j: 1 }, { i: '120', j: 1 }, { i: '121', j: 1 }, { i: '122', j: 1 }, { i: '123', j: 1 }, { i: '124', j: 1 }, { i: '125', j: 1 }, { i: '126', j: 1 }, { i: '127', j: 1 }, { i: '128', j: 1 }, { i: '129', j: 1 }, { i: '130', j: 1 }, { i: '131', j: 1 }, { i: '132', j: 1 }, { i: '133', j: 1 }, { i: '134', j: 1 }, { i: '135', j: 1 }, { i: '136', j: 1 }, { i: '137', j: 1 }, { i: '138', j: 1 }, { i: '139', j: 1 }, { i: '140', j: 1 }, { i: '141', j: 1 }, { i: '142', j: 1 }, { i: '143', j: 1 }, { i: '144', j: 1 }, { i: '145', j: 1 }, { i: '146', j: 1 }, { i: '147', j: 1 }, { i: '148', j: 1 }, { i: '149', j: 1 }, { i: '150', j: 1 }, { i: '151', j: 1 }, { i: '152', j: 1 }, { i: '153', j: 1 }, { i: '154', j: 1 }, { i: '155', j: 1 }, { i: '156', j: 1 }, { i: '157', j: 1 }, { i: '158', j: 1 }, { i: '159', j: 1 }, { i: '160', j: 1 }, { i: '161', j: 1 }, { i: '162', j: 1 }, { i: '163', j: 1 }, { i: '164', j: 1 }, { i: '165', j: 1 }, { i: '166', j: 1 }, { i: '167', j: 1 }, { i: '168', j: 1 }, { i: '169', j: 1 }, { i: '170', j: 1 }, { i: '171', j: 1 }, { i: '172', j: 1 }, { i: '173', j: 1 }, { i: '174', j: 1 }, { i: '175', j: 1 }, { i: '176', j: 1 }, { i: '177', j: 1 }, { i: '178', j: 1 }, { i: '179', j: 1 }, { i: '180', j: 1 }, { i: '181', j: 1 }, { i: '182', j: 1 }, { i: '183', j: 1 }, { i: '184', j: 1 }, { i: '185', j: 1 }, { i: '186', j: 1 }, { i: '187', j: 1 }, { i: '188', j: 1 }, { i: '189', j: 1 }, { i: '190', j: 1 }, { i: '191', j: 1 }, { i: '113', j: 2 }, { i: '193', j: 1 }, { i: '194', j: 1 }, { i: '195', j: 1 }, { i: '196', j: 1 }, { i: '197', j: 1 }, { i: '198', j: 1 }, { i: '120', j: 2 }, { i: '79', j: 1 }, { i: '1', j: 2 }, { i: '2', j: 2 }, { i: '3', j: 2 }, { i: '4', j: 2 }, { i: '5', j: 2 }, { i: '6', j: 2 }, { i: '7', j: 2 }, { i: '8', j: 2 }, { i: '9', j: 2 }, { i: '10', j: 2 }, { i: '11', j: 2 }, { i: '12', j: 2 }, { i: '13', j: 2 }, { i: '14', j: 2 }, { i: '15', j: 2 }, { i: '16', j: 2 }, { i: '17', j: 2 }, { i: '18', j: 2 }, { i: '19', j: 2 }, { i: '20', j: 2 }, { i: '21', j: 2 }, { i: '22', j: 2 }, { i: '23', j: 2 }, { i: '24', j: 2 }, { i: '25', j: 2 }, { i: '26', j: 2 }, { i: '27', j: 2 }, { i: '28', j: 2 }, { i: '29', j: 2 }, { i: '30', j: 2 }, { i: '31', j: 2 }, { i: '32', j: 2 }, { i: '33', j: 2 }, { i: '34', j: 2 }, { i: '35', j: 2 }, { i: '36', j: 2 }, { i: '37', j: 2 }, { i: '38', j: 2 }, { i: '39', j: 2 }, { i: '40', j: 2 }, { i: '41', j: 2 }, { i: '42', j: 2 }, { i: '43', j: 2 }, { i: '44', j: 2 }, { i: '45', j: 2 }, { i: '46', j: 2 }, { i: '47', j: 2 }, { i: '48', j: 2 }, { i: '49', j: 2 }, { i: '50', j: 2 }, { i: '51', j: 2 }, { i: '52', j: 2 }, { i: '53', j: 2 }, { i: '54', j: 2 }, { i: '55', j: 2 }, { i: '56', j: 2 }, { i: '57', j: 2 }, { i: '58', j: 2 }, { i: '59', j: 2 }, { i: '60', j: 2 }, { i: '61', j: 2 }, { i: '62', j: 2 }, { i: '63', j: 2 }, { i: '64', j: 2 }, { i: '65', j: 2 }, { i: '66', j: 2 }, { i: '67', j: 2 }, { i: '68', j: 2 }, { i: '69', j: 2 }, { i: '70', j: 2 }, { i: '71', j: 2 }, { i: '72', j: 2 }, { i: '73', j: 2 }, { i: '74', j: 2 }, { i: '75', j: 2 }, { i: '76', j: 2 }, { i: '77', j: 2 }, { i: '78', j: 2 }, { i: '79', j: 2 }, { i: '80', j: 2 }, { i: '81', j: 2 }, { i: '82', j: 2 }, { i: '83', j: 2 }, { i: '84', j: 2 }, { i: '85', j: 2 }, { i: '86', j: 2 }, { i: '87', j: 2 }, { i: '88', j: 2 }, { i: '89', j: 2 }, { i: '90', j: 2 }, { i: '91', j: 2 }, { i: '92', j: 2 }, { i: '93', j: 2 }, { i: '94', j: 2 }, { i: '95', j: 2 }, { i: '96', j: 2 }, { i: '97', j: 2 }, { i: '98', j: 2 }, { i: '99', j: 2 }, { i: '100', j: 2 }, { i: '101', j: 2 }, { i: '102', j: 2 }, { i: '103', j: 2 }, { i: '104', j: 2 }, { i: '105', j: 2 }, { i: '106', j: 2 }, { i: '107', j: 2 }, { i: '108', j: 2 }, { i: '109', j: 2 }, { i: '110', j: 2 }, { i: '111', j: 2 }, { i: '112', j: 2 }, { i: '153', j: 2 }, { i: '114', j: 2 }, { i: '115', j: 2 }, { i: '116', j: 2 }, { i: '117', j: 2 }, { i: '118', j: 2 }, { i: '119', j: 2 }, { i: '160', j: 2 }, { i: '121', j: 2 }, { i: '122', j: 2 }, { i: '123', j: 2 }, { i: '124', j: 2 }, { i: '125', j: 2 }, { i: '126', j: 2 }, { i: '127', j: 2 }, { i: '128', j: 2 }, { i: '129', j: 2 }, { i: '130', j: 2 }, { i: '131', j: 2 }, { i: '132', j: 2 }, { i: '133', j: 2 }, { i: '134', j: 2 }, { i: '135', j: 2 }, { i: '136', j: 2 }, { i: '137', j: 2 }, { i: '138', j: 2 }, { i: '139', j: 2 }, { i: '140', j: 2 }, { i: '141', j: 2 }, { i: '142', j: 2 }, { i: '143', j: 2 }, { i: '144', j: 2 }, { i: '145', j: 2 }, { i: '146', j: 2 }, { i: '147', j: 2 }, { i: '148', j: 2 }, { i: '149', j: 2 }, { i: '150', j: 2 }, { i: '151', j: 2 }, { i: '152', j: 2 }, { i: '193', j: 2 }, { i: '154', j: 2 }, { i: '155', j: 2 }, { i: '156', j: 2 }, { i: '157', j: 2 }, { i: '158', j: 2 }, { i: '159', j: 2 }, { i: '173', j: 2 }, { i: '161', j: 2 }, { i: '162', j: 2 }, { i: '163', j: 2 }, { i: '164', j: 2 }, { i: '165', j: 2 }, { i: '166', j: 2 }, { i: '167', j: 2 }, { i: '168', j: 2 }, { i: '169', j: 2 }, { i: '170', j: 2 }, { i: '171', j: 2 }, { i: '172', j: 2 }, { i: '186', j: 2 }, { i: '174', j: 2 }, { i: '175', j: 2 }, { i: '176', j: 2 }, { i: '177', j: 2 }, { i: '178', j: 2 }, { i: '179', j: 2 }, { i: '180', j: 2 }, { i: '181', j: 2 }, { i: '182', j: 2 }, { i: '183', j: 2 }, { i: '184', j: 2 }, { i: '185', j: 2 }, { i: '190', j: 2 }, { i: '187', j: 2 }, { i: '188', j: 2 }, { i: '189', j: 2 }, { i: '194', j: 2 }, { i: '191', j: 2 }, { i: '196', j: 2 }, { i: '197', j: 2 }, { i: '198', j: 2 }, { i: '195', j: 2 },  ], css_id: 'tinytable_css_329kesnynksv5hoggvpj',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 },  ], css_id: 'tinytable_css_8uidwe3ebbke0eyktdqi',}, 
+          { positions: [ { i: '199', j: 0 },  ], css_id: 'tinytable_css_6mjc7jo7faos8b7u5z3n',}, 
+          { positions: [ { i: '192', j: 0 },  ], css_id: 'tinytable_css_fc0ep9znviozpdw63d36',}, 
+          { positions: [ { i: '1', j: 0 }, { i: '2', j: 0 }, { i: '3', j: 0 }, { i: '4', j: 0 }, { i: '5', j: 0 }, { i: '6', j: 0 }, { i: '7', j: 0 }, { i: '8', j: 0 }, { i: '9', j: 0 }, { i: '10', j: 0 }, { i: '11', j: 0 }, { i: '12', j: 0 }, { i: '13', j: 0 }, { i: '14', j: 0 }, { i: '15', j: 0 }, { i: '16', j: 0 }, { i: '17', j: 0 }, { i: '18', j: 0 }, { i: '19', j: 0 }, { i: '20', j: 0 }, { i: '21', j: 0 }, { i: '22', j: 0 }, { i: '23', j: 0 }, { i: '24', j: 0 }, { i: '25', j: 0 }, { i: '26', j: 0 }, { i: '27', j: 0 }, { i: '28', j: 0 }, { i: '29', j: 0 }, { i: '30', j: 0 }, { i: '31', j: 0 }, { i: '32', j: 0 }, { i: '33', j: 0 }, { i: '34', j: 0 }, { i: '35', j: 0 }, { i: '36', j: 0 }, { i: '37', j: 0 }, { i: '38', j: 0 }, { i: '39', j: 0 }, { i: '40', j: 0 }, { i: '41', j: 0 }, { i: '42', j: 0 }, { i: '43', j: 0 }, { i: '44', j: 0 }, { i: '45', j: 0 }, { i: '46', j: 0 }, { i: '47', j: 0 }, { i: '48', j: 0 }, { i: '49', j: 0 }, { i: '50', j: 0 }, { i: '51', j: 0 }, { i: '52', j: 0 }, { i: '53', j: 0 }, { i: '54', j: 0 }, { i: '55', j: 0 }, { i: '56', j: 0 }, { i: '57', j: 0 }, { i: '58', j: 0 }, { i: '59', j: 0 }, { i: '60', j: 0 }, { i: '61', j: 0 }, { i: '62', j: 0 }, { i: '63', j: 0 }, { i: '64', j: 0 }, { i: '65', j: 0 }, { i: '66', j: 0 }, { i: '67', j: 0 }, { i: '68', j: 0 }, { i: '69', j: 0 }, { i: '70', j: 0 }, { i: '71', j: 0 }, { i: '72', j: 0 }, { i: '73', j: 0 }, { i: '74', j: 0 }, { i: '75', j: 0 }, { i: '76', j: 0 }, { i: '77', j: 0 }, { i: '78', j: 0 }, { i: '79', j: 0 }, { i: '80', j: 0 }, { i: '81', j: 0 }, { i: '82', j: 0 }, { i: '83', j: 0 }, { i: '84', j: 0 }, { i: '85', j: 0 }, { i: '86', j: 0 }, { i: '87', j: 0 }, { i: '88', j: 0 }, { i: '89', j: 0 }, { i: '90', j: 0 }, { i: '91', j: 0 }, { i: '92', j: 0 }, { i: '93', j: 0 }, { i: '94', j: 0 }, { i: '95', j: 0 }, { i: '96', j: 0 }, { i: '97', j: 0 }, { i: '98', j: 0 }, { i: '99', j: 0 }, { i: '100', j: 0 }, { i: '101', j: 0 }, { i: '102', j: 0 }, { i: '103', j: 0 }, { i: '104', j: 0 }, { i: '105', j: 0 }, { i: '106', j: 0 }, { i: '107', j: 0 }, { i: '108', j: 0 }, { i: '109', j: 0 }, { i: '110', j: 0 }, { i: '111', j: 0 }, { i: '112', j: 0 }, { i: '113', j: 0 }, { i: '114', j: 0 }, { i: '115', j: 0 }, { i: '116', j: 0 }, { i: '117', j: 0 }, { i: '118', j: 0 }, { i: '119', j: 0 }, { i: '120', j: 0 }, { i: '121', j: 0 }, { i: '122', j: 0 }, { i: '123', j: 0 }, { i: '124', j: 0 }, { i: '125', j: 0 }, { i: '126', j: 0 }, { i: '127', j: 0 }, { i: '128', j: 0 }, { i: '129', j: 0 }, { i: '130', j: 0 }, { i: '131', j: 0 }, { i: '132', j: 0 }, { i: '133', j: 0 }, { i: '134', j: 0 }, { i: '135', j: 0 }, { i: '136', j: 0 }, { i: '137', j: 0 }, { i: '138', j: 0 }, { i: '139', j: 0 }, { i: '140', j: 0 }, { i: '141', j: 0 }, { i: '142', j: 0 }, { i: '143', j: 0 }, { i: '144', j: 0 }, { i: '145', j: 0 }, { i: '146', j: 0 }, { i: '147', j: 0 }, { i: '148', j: 0 }, { i: '149', j: 0 }, { i: '150', j: 0 }, { i: '151', j: 0 }, { i: '152', j: 0 }, { i: '153', j: 0 }, { i: '154', j: 0 }, { i: '155', j: 0 }, { i: '156', j: 0 }, { i: '157', j: 0 }, { i: '158', j: 0 }, { i: '159', j: 0 }, { i: '160', j: 0 }, { i: '161', j: 0 }, { i: '162', j: 0 }, { i: '163', j: 0 }, { i: '164', j: 0 }, { i: '165', j: 0 }, { i: '166', j: 0 }, { i: '167', j: 0 }, { i: '168', j: 0 }, { i: '169', j: 0 }, { i: '170', j: 0 }, { i: '171', j: 0 }, { i: '172', j: 0 }, { i: '173', j: 0 }, { i: '174', j: 0 }, { i: '175', j: 0 }, { i: '176', j: 0 }, { i: '177', j: 0 }, { i: '178', j: 0 }, { i: '179', j: 0 }, { i: '180', j: 0 }, { i: '181', j: 0 }, { i: '182', j: 0 }, { i: '183', j: 0 }, { i: '184', j: 0 }, { i: '185', j: 0 }, { i: '186', j: 0 }, { i: '187', j: 0 }, { i: '188', j: 0 }, { i: '189', j: 0 }, { i: '190', j: 0 }, { i: '191', j: 0 }, { i: '196', j: 0 }, { i: '193', j: 0 }, { i: '194', j: 0 }, { i: '195', j: 0 }, { i: '197', j: 0 }, { i: '198', j: 0 },  ], css_id: 'tinytable_css_ip7ru77t7bxwek2fsu8y',}, 
+          { positions: [ { i: '0', j: 0 },  ], css_id: 'tinytable_css_sapvfdnzwol3019azsqa',}, 
+          ];
+
+          // Loop over the arrays to style the cells
+          cellsToStyle.forEach(function (group) {
+              group.positions.forEach(function (cell) {
+                  styleCell_kcr8jy7fls8tipsi5lns(cell.i, cell.j, group.css_id);
+              });
+          });
+      });
+    </script>
+
+    <style>
+      /* tinytable css entries after */
+      .table td.tinytable_css_96m7r1nb1md7amh5zqz5, .table th.tinytable_css_96m7r1nb1md7amh5zqz5 { text-align: center; border-bottom: solid #d3d8dc 0.1em; }
+      .table td.tinytable_css_7yc4nohazmtah784rjg8, .table th.tinytable_css_7yc4nohazmtah784rjg8 { text-align: center; border-bottom: solid black 0.05em; }
+      .table td.tinytable_css_329kesnynksv5hoggvpj, .table th.tinytable_css_329kesnynksv5hoggvpj { text-align: center; }
+      .table td.tinytable_css_8uidwe3ebbke0eyktdqi, .table th.tinytable_css_8uidwe3ebbke0eyktdqi { text-align: center; border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+      .table td.tinytable_css_6mjc7jo7faos8b7u5z3n, .table th.tinytable_css_6mjc7jo7faos8b7u5z3n { text-align: left; border-bottom: solid #d3d8dc 0.1em; }
+      .table td.tinytable_css_fc0ep9znviozpdw63d36, .table th.tinytable_css_fc0ep9znviozpdw63d36 { text-align: left; border-bottom: solid black 0.05em; }
+      .table td.tinytable_css_ip7ru77t7bxwek2fsu8y, .table th.tinytable_css_ip7ru77t7bxwek2fsu8y { text-align: left; }
+      .table td.tinytable_css_sapvfdnzwol3019azsqa, .table th.tinytable_css_sapvfdnzwol3019azsqa { text-align: left; border-top: solid #d3d8dc 0.1em; border-bottom: solid #d3d8dc 0.05em; }
+    </style>
+    <div class="container">
+      <table class="table table-borderless" id="tinytable_kcr8jy7fls8tipsi5lns" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
+        <thead>
+        
+              <tr>
+                <th scope="col" data-row="0" data-col="0"> </th>
+                <th scope="col" data-row="0" data-col="1">Model 1: Inteaction-commmittee_el</th>
+                <th scope="col" data-row="0" data-col="2">Model 2: Control personal attributes</th>
+              </tr>
+        </thead>
+        <tfoot><tr><td colspan='3'>+ p < 0.1, * p < 0.05, ** p < 0.01, *** p < 0.001</td></tr></tfoot>
+        <tbody>
+                <tr>
+                  <td data-row="1" data-col="0">(Intercept)</td>
+                  <td data-row="1" data-col="1">0.387***</td>
+                  <td data-row="1" data-col="2">0.392***</td>
+                </tr>
+                <tr>
+                  <td data-row="2" data-col="0"></td>
+                  <td data-row="2" data-col="1">(0.011)</td>
+                  <td data-row="2" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="3" data-col="0">committee_elCommittee on Agriculture</td>
+                  <td data-row="3" data-col="1">0.016</td>
+                  <td data-row="3" data-col="2">0.014</td>
+                </tr>
+                <tr>
+                  <td data-row="4" data-col="0"></td>
+                  <td data-row="4" data-col="1">(0.011)</td>
+                  <td data-row="4" data-col="2">(0.011)</td>
+                </tr>
+                <tr>
+                  <td data-row="5" data-col="0">committee_elCommittee on Agriculture, Nutrition, and Forestry</td>
+                  <td data-row="5" data-col="1">0.006</td>
+                  <td data-row="5" data-col="2">0.005</td>
+                </tr>
+                <tr>
+                  <td data-row="6" data-col="0"></td>
+                  <td data-row="6" data-col="1">(0.012)</td>
+                  <td data-row="6" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="7" data-col="0">committee_elCommittee on Appropriations</td>
+                  <td data-row="7" data-col="1">0.006</td>
+                  <td data-row="7" data-col="2">0.004</td>
+                </tr>
+                <tr>
+                  <td data-row="8" data-col="0"></td>
+                  <td data-row="8" data-col="1">(0.011)</td>
+                  <td data-row="8" data-col="2">(0.011)</td>
+                </tr>
+                <tr>
+                  <td data-row="9" data-col="0">committee_elCommittee on Armed Services</td>
+                  <td data-row="9" data-col="1">0.010</td>
+                  <td data-row="9" data-col="2">0.008</td>
+                </tr>
+                <tr>
+                  <td data-row="10" data-col="0"></td>
+                  <td data-row="10" data-col="1">(0.011)</td>
+                  <td data-row="10" data-col="2">(0.011)</td>
+                </tr>
+                <tr>
+                  <td data-row="11" data-col="0">committee_elCommittee on Banking, Housing, and Urban Affairs</td>
+                  <td data-row="11" data-col="1">0.004</td>
+                  <td data-row="11" data-col="2">0.004</td>
+                </tr>
+                <tr>
+                  <td data-row="12" data-col="0"></td>
+                  <td data-row="12" data-col="1">(0.013)</td>
+                  <td data-row="12" data-col="2">(0.013)</td>
+                </tr>
+                <tr>
+                  <td data-row="13" data-col="0">committee_elCommittee on Commerce, Science, and Transportation</td>
+                  <td data-row="13" data-col="1">−0.005</td>
+                  <td data-row="13" data-col="2">−0.005</td>
+                </tr>
+                <tr>
+                  <td data-row="14" data-col="0"></td>
+                  <td data-row="14" data-col="1">(0.013)</td>
+                  <td data-row="14" data-col="2">(0.013)</td>
+                </tr>
+                <tr>
+                  <td data-row="15" data-col="0">committee_elCommittee on Education and the Workforce</td>
+                  <td data-row="15" data-col="1">0.008</td>
+                  <td data-row="15" data-col="2">0.005</td>
+                </tr>
+                <tr>
+                  <td data-row="16" data-col="0"></td>
+                  <td data-row="16" data-col="1">(0.012)</td>
+                  <td data-row="16" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="17" data-col="0">committee_elCommittee on Energy and Commerce</td>
+                  <td data-row="17" data-col="1">0.009</td>
+                  <td data-row="17" data-col="2">0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="18" data-col="0"></td>
+                  <td data-row="18" data-col="1">(0.011)</td>
+                  <td data-row="18" data-col="2">(0.011)</td>
+                </tr>
+                <tr>
+                  <td data-row="19" data-col="0">committee_elCommittee on Energy and Natural Resources</td>
+                  <td data-row="19" data-col="1">0.007</td>
+                  <td data-row="19" data-col="2">0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="20" data-col="0"></td>
+                  <td data-row="20" data-col="1">(0.014)</td>
+                  <td data-row="20" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="21" data-col="0">committee_elCommittee on Environment and Public Works</td>
+                  <td data-row="21" data-col="1">−0.007</td>
+                  <td data-row="21" data-col="2">−0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="22" data-col="0"></td>
+                  <td data-row="22" data-col="1">(0.014)</td>
+                  <td data-row="22" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="23" data-col="0">committee_elCommittee on Ethics</td>
+                  <td data-row="23" data-col="1">0.027</td>
+                  <td data-row="23" data-col="2">0.023</td>
+                </tr>
+                <tr>
+                  <td data-row="24" data-col="0"></td>
+                  <td data-row="24" data-col="1">(0.022)</td>
+                  <td data-row="24" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="25" data-col="0">committee_elCommittee on Finance</td>
+                  <td data-row="25" data-col="1">0.007</td>
+                  <td data-row="25" data-col="2">0.009</td>
+                </tr>
+                <tr>
+                  <td data-row="26" data-col="0"></td>
+                  <td data-row="26" data-col="1">(0.014)</td>
+                  <td data-row="26" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="27" data-col="0">committee_elCommittee on Financial Services</td>
+                  <td data-row="27" data-col="1">0.017</td>
+                  <td data-row="27" data-col="2">0.015</td>
+                </tr>
+                <tr>
+                  <td data-row="28" data-col="0"></td>
+                  <td data-row="28" data-col="1">(0.011)</td>
+                  <td data-row="28" data-col="2">(0.011)</td>
+                </tr>
+                <tr>
+                  <td data-row="29" data-col="0">committee_elCommittee on Foreign Affairs</td>
+                  <td data-row="29" data-col="1">0.004</td>
+                  <td data-row="29" data-col="2">0.003</td>
+                </tr>
+                <tr>
+                  <td data-row="30" data-col="0"></td>
+                  <td data-row="30" data-col="1">(0.012)</td>
+                  <td data-row="30" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="31" data-col="0">committee_elCommittee on Foreign Relations</td>
+                  <td data-row="31" data-col="1">−0.009</td>
+                  <td data-row="31" data-col="2">−0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="32" data-col="0"></td>
+                  <td data-row="32" data-col="1">(0.014)</td>
+                  <td data-row="32" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="33" data-col="0">committee_elCommittee on Health, Education, Labor, and Pensions</td>
+                  <td data-row="33" data-col="1">−0.004</td>
+                  <td data-row="33" data-col="2">−0.006</td>
+                </tr>
+                <tr>
+                  <td data-row="34" data-col="0"></td>
+                  <td data-row="34" data-col="1">(0.015)</td>
+                  <td data-row="34" data-col="2">(0.015)</td>
+                </tr>
+                <tr>
+                  <td data-row="35" data-col="0">committee_elCommittee on Homeland Security</td>
+                  <td data-row="35" data-col="1">0.018</td>
+                  <td data-row="35" data-col="2">0.017</td>
+                </tr>
+                <tr>
+                  <td data-row="36" data-col="0"></td>
+                  <td data-row="36" data-col="1">(0.012)</td>
+                  <td data-row="36" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="37" data-col="0">committee_elCommittee on Homeland Security and Governmental Affairs</td>
+                  <td data-row="37" data-col="1">0.022</td>
+                  <td data-row="37" data-col="2">0.023</td>
+                </tr>
+                <tr>
+                  <td data-row="38" data-col="0"></td>
+                  <td data-row="38" data-col="1">(0.015)</td>
+                  <td data-row="38" data-col="2">(0.015)</td>
+                </tr>
+                <tr>
+                  <td data-row="39" data-col="0">committee_elCommittee on House Administration</td>
+                  <td data-row="39" data-col="1">0.008</td>
+                  <td data-row="39" data-col="2">0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="40" data-col="0"></td>
+                  <td data-row="40" data-col="1">(0.014)</td>
+                  <td data-row="40" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="41" data-col="0">committee_elCommittee on Indian Affairs</td>
+                  <td data-row="41" data-col="1">−0.004</td>
+                  <td data-row="41" data-col="2">−0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="42" data-col="0"></td>
+                  <td data-row="42" data-col="1">(0.013)</td>
+                  <td data-row="42" data-col="2">(0.013)</td>
+                </tr>
+                <tr>
+                  <td data-row="43" data-col="0">committee_elCommittee on Natural Resources</td>
+                  <td data-row="43" data-col="1">0.010</td>
+                  <td data-row="43" data-col="2">0.009</td>
+                </tr>
+                <tr>
+                  <td data-row="44" data-col="0"></td>
+                  <td data-row="44" data-col="1">(0.012)</td>
+                  <td data-row="44" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="45" data-col="0">committee_elCommittee on Oversight and Accountability</td>
+                  <td data-row="45" data-col="1">0.020+</td>
+                  <td data-row="45" data-col="2">0.019</td>
+                </tr>
+                <tr>
+                  <td data-row="46" data-col="0"></td>
+                  <td data-row="46" data-col="1">(0.012)</td>
+                  <td data-row="46" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="47" data-col="0">committee_elCommittee on Rules</td>
+                  <td data-row="47" data-col="1">−0.003</td>
+                  <td data-row="47" data-col="2">−0.001</td>
+                </tr>
+                <tr>
+                  <td data-row="48" data-col="0"></td>
+                  <td data-row="48" data-col="1">(0.014)</td>
+                  <td data-row="48" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="49" data-col="0">committee_elCommittee on Rules and Administration</td>
+                  <td data-row="49" data-col="1">0.007</td>
+                  <td data-row="49" data-col="2">0.004</td>
+                </tr>
+                <tr>
+                  <td data-row="50" data-col="0"></td>
+                  <td data-row="50" data-col="1">(0.015)</td>
+                  <td data-row="50" data-col="2">(0.015)</td>
+                </tr>
+                <tr>
+                  <td data-row="51" data-col="0">committee_elCommittee on Science, Space, and Technology</td>
+                  <td data-row="51" data-col="1">0.005</td>
+                  <td data-row="51" data-col="2">0.004</td>
+                </tr>
+                <tr>
+                  <td data-row="52" data-col="0"></td>
+                  <td data-row="52" data-col="1">(0.013)</td>
+                  <td data-row="52" data-col="2">(0.013)</td>
+                </tr>
+                <tr>
+                  <td data-row="53" data-col="0">committee_elCommittee on Small Business</td>
+                  <td data-row="53" data-col="1">0.009</td>
+                  <td data-row="53" data-col="2">0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="54" data-col="0"></td>
+                  <td data-row="54" data-col="1">(0.014)</td>
+                  <td data-row="54" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="55" data-col="0">committee_elCommittee on Small Business and Entrepreneurship</td>
+                  <td data-row="55" data-col="1">0.002</td>
+                  <td data-row="55" data-col="2">0.003</td>
+                </tr>
+                <tr>
+                  <td data-row="56" data-col="0"></td>
+                  <td data-row="56" data-col="1">(0.015)</td>
+                  <td data-row="56" data-col="2">(0.015)</td>
+                </tr>
+                <tr>
+                  <td data-row="57" data-col="0">committee_elCommittee on the Budget</td>
+                  <td data-row="57" data-col="1">0.021+</td>
+                  <td data-row="57" data-col="2">0.020+</td>
+                </tr>
+                <tr>
+                  <td data-row="58" data-col="0"></td>
+                  <td data-row="58" data-col="1">(0.012)</td>
+                  <td data-row="58" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="59" data-col="0">committee_elCommittee on the Judiciary</td>
+                  <td data-row="59" data-col="1">0.010</td>
+                  <td data-row="59" data-col="2">0.009</td>
+                </tr>
+                <tr>
+                  <td data-row="60" data-col="0"></td>
+                  <td data-row="60" data-col="1">(0.012)</td>
+                  <td data-row="60" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="61" data-col="0">committee_elCommittee on Transportation and Infrastructure</td>
+                  <td data-row="61" data-col="1">0.011</td>
+                  <td data-row="61" data-col="2">0.009</td>
+                </tr>
+                <tr>
+                  <td data-row="62" data-col="0"></td>
+                  <td data-row="62" data-col="1">(0.012)</td>
+                  <td data-row="62" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="63" data-col="0">committee_elCommittee on Veterans' Affairs</td>
+                  <td data-row="63" data-col="1">−0.004</td>
+                  <td data-row="63" data-col="2">−0.005</td>
+                </tr>
+                <tr>
+                  <td data-row="64" data-col="0"></td>
+                  <td data-row="64" data-col="1">(0.013)</td>
+                  <td data-row="64" data-col="2">(0.013)</td>
+                </tr>
+                <tr>
+                  <td data-row="65" data-col="0">committee_elCommittee on Ways and Means</td>
+                  <td data-row="65" data-col="1">0.003</td>
+                  <td data-row="65" data-col="2">0.002</td>
+                </tr>
+                <tr>
+                  <td data-row="66" data-col="0"></td>
+                  <td data-row="66" data-col="1">(0.012)</td>
+                  <td data-row="66" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="67" data-col="0">committee_elJoint Committee on Printing</td>
+                  <td data-row="67" data-col="1">0.000</td>
+                  <td data-row="67" data-col="2">−0.001</td>
+                </tr>
+                <tr>
+                  <td data-row="68" data-col="0"></td>
+                  <td data-row="68" data-col="1">(0.014)</td>
+                  <td data-row="68" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="69" data-col="0">committee_elJoint Committee on Taxation</td>
+                  <td data-row="69" data-col="1">−0.001</td>
+                  <td data-row="69" data-col="2">0.002</td>
+                </tr>
+                <tr>
+                  <td data-row="70" data-col="0"></td>
+                  <td data-row="70" data-col="1">(0.022)</td>
+                  <td data-row="70" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="71" data-col="0">committee_elJoint Committee on the Library</td>
+                  <td data-row="71" data-col="1">0.029</td>
+                  <td data-row="71" data-col="2">0.026</td>
+                </tr>
+                <tr>
+                  <td data-row="72" data-col="0"></td>
+                  <td data-row="72" data-col="1">(0.022)</td>
+                  <td data-row="72" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="73" data-col="0">committee_elJoint Economic Committee</td>
+                  <td data-row="73" data-col="1">0.012</td>
+                  <td data-row="73" data-col="2">0.011</td>
+                </tr>
+                <tr>
+                  <td data-row="74" data-col="0"></td>
+                  <td data-row="74" data-col="1">(0.013)</td>
+                  <td data-row="74" data-col="2">(0.013)</td>
+                </tr>
+                <tr>
+                  <td data-row="75" data-col="0">committee_elPermanent Select Committee on Intelligence</td>
+                  <td data-row="75" data-col="1">0.003</td>
+                  <td data-row="75" data-col="2">0.003</td>
+                </tr>
+                <tr>
+                  <td data-row="76" data-col="0"></td>
+                  <td data-row="76" data-col="1">(0.012)</td>
+                  <td data-row="76" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="77" data-col="0">committee_elSelect Committee on Economic Disparity and Fairness in Growth</td>
+                  <td data-row="77" data-col="1">−0.036</td>
+                  <td data-row="77" data-col="2">−0.035</td>
+                </tr>
+                <tr>
+                  <td data-row="78" data-col="0"></td>
+                  <td data-row="78" data-col="1">(0.022)</td>
+                  <td data-row="78" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="79" data-col="0">committee_elSelect Committee on Ethics</td>
+                  <td data-row="79" data-col="1">0.012</td>
+                  <td data-row="79" data-col="2">0.012</td>
+                </tr>
+                <tr>
+                  <td data-row="80" data-col="0"></td>
+                  <td data-row="80" data-col="1">(0.014)</td>
+                  <td data-row="80" data-col="2">(0.014)</td>
+                </tr>
+                <tr>
+                  <td data-row="81" data-col="0">committee_elSelect Committee on Intelligence</td>
+                  <td data-row="81" data-col="1">0.007</td>
+                  <td data-row="81" data-col="2">0.008</td>
+                </tr>
+                <tr>
+                  <td data-row="82" data-col="0"></td>
+                  <td data-row="82" data-col="1">(0.012)</td>
+                  <td data-row="82" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="83" data-col="0">committee_elSelect Committee on the Climate Crisis</td>
+                  <td data-row="83" data-col="1">−0.012</td>
+                  <td data-row="83" data-col="2">−0.014</td>
+                </tr>
+                <tr>
+                  <td data-row="84" data-col="0"></td>
+                  <td data-row="84" data-col="1">(0.017)</td>
+                  <td data-row="84" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="85" data-col="0">committee_elSelect Committee on the Modernization of Congress</td>
+                  <td data-row="85" data-col="1">0.014</td>
+                  <td data-row="85" data-col="2">0.013</td>
+                </tr>
+                <tr>
+                  <td data-row="86" data-col="0"></td>
+                  <td data-row="86" data-col="1">(0.022)</td>
+                  <td data-row="86" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="87" data-col="0">committee_elSelect Committee on the Strategic Competition Between the United States and the Chinese Communist Party</td>
+                  <td data-row="87" data-col="1">0.004</td>
+                  <td data-row="87" data-col="2">0.004</td>
+                </tr>
+                <tr>
+                  <td data-row="88" data-col="0"></td>
+                  <td data-row="88" data-col="1">(0.022)</td>
+                  <td data-row="88" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="89" data-col="0">committee_elSelect Subcommittee on the Coronavirus Pandemic</td>
+                  <td data-row="89" data-col="1">−0.000</td>
+                  <td data-row="89" data-col="2">−0.001</td>
+                </tr>
+                <tr>
+                  <td data-row="90" data-col="0"></td>
+                  <td data-row="90" data-col="1">(0.017)</td>
+                  <td data-row="90" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="91" data-col="0">committee_elSelect Subcommittee on the Weaponization of the Federal Government</td>
+                  <td data-row="91" data-col="1">0.023</td>
+                  <td data-row="91" data-col="2">0.019</td>
+                </tr>
+                <tr>
+                  <td data-row="92" data-col="0"></td>
+                  <td data-row="92" data-col="1">(0.022)</td>
+                  <td data-row="92" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="93" data-col="0">committee_elSpecial Committee on Aging</td>
+                  <td data-row="93" data-col="1">0.000</td>
+                  <td data-row="93" data-col="2">−0.001</td>
+                </tr>
+                <tr>
+                  <td data-row="94" data-col="0"></td>
+                  <td data-row="94" data-col="1">(0.012)</td>
+                  <td data-row="94" data-col="2">(0.012)</td>
+                </tr>
+                <tr>
+                  <td data-row="95" data-col="0">committee_elUnited States Senate Caucus on International Narcotics Control</td>
+                  <td data-row="95" data-col="1">0.002</td>
+                  <td data-row="95" data-col="2">−0.001</td>
+                </tr>
+                <tr>
+                  <td data-row="96" data-col="0"></td>
+                  <td data-row="96" data-col="1">(0.017)</td>
+                  <td data-row="96" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="97" data-col="0">partyRepublican</td>
+                  <td data-row="97" data-col="1">0.001</td>
+                  <td data-row="97" data-col="2">0.002</td>
+                </tr>
+                <tr>
+                  <td data-row="98" data-col="0"></td>
+                  <td data-row="98" data-col="1">(0.015)</td>
+                  <td data-row="98" data-col="2">(0.015)</td>
+                </tr>
+                <tr>
+                  <td data-row="99" data-col="0">factor(congress)116</td>
+                  <td data-row="99" data-col="1">0.008***</td>
+                  <td data-row="99" data-col="2">0.008***</td>
+                </tr>
+                <tr>
+                  <td data-row="100" data-col="0"></td>
+                  <td data-row="100" data-col="1">(0.002)</td>
+                  <td data-row="100" data-col="2">(0.002)</td>
+                </tr>
+                <tr>
+                  <td data-row="101" data-col="0">factor(congress)117</td>
+                  <td data-row="101" data-col="1">0.014***</td>
+                  <td data-row="101" data-col="2">0.014***</td>
+                </tr>
+                <tr>
+                  <td data-row="102" data-col="0"></td>
+                  <td data-row="102" data-col="1">(0.002)</td>
+                  <td data-row="102" data-col="2">(0.002)</td>
+                </tr>
+                <tr>
+                  <td data-row="103" data-col="0">factor(congress)118</td>
+                  <td data-row="103" data-col="1">0.012***</td>
+                  <td data-row="103" data-col="2">0.012***</td>
+                </tr>
+                <tr>
+                  <td data-row="104" data-col="0"></td>
+                  <td data-row="104" data-col="1">(0.002)</td>
+                  <td data-row="104" data-col="2">(0.002)</td>
+                </tr>
+                <tr>
+                  <td data-row="105" data-col="0">committee_elCommittee on Agriculture × partyRepublican</td>
+                  <td data-row="105" data-col="1">−0.010</td>
+                  <td data-row="105" data-col="2">−0.010</td>
+                </tr>
+                <tr>
+                  <td data-row="106" data-col="0"></td>
+                  <td data-row="106" data-col="1">(0.016)</td>
+                  <td data-row="106" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="107" data-col="0">committee_elCommittee on Agriculture, Nutrition, and Forestry × partyRepublican</td>
+                  <td data-row="107" data-col="1">−0.017</td>
+                  <td data-row="107" data-col="2">−0.018</td>
+                </tr>
+                <tr>
+                  <td data-row="108" data-col="0"></td>
+                  <td data-row="108" data-col="1">(0.017)</td>
+                  <td data-row="108" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="109" data-col="0">committee_elCommittee on Appropriations × partyRepublican</td>
+                  <td data-row="109" data-col="1">0.001</td>
+                  <td data-row="109" data-col="2">0.002</td>
+                </tr>
+                <tr>
+                  <td data-row="110" data-col="0"></td>
+                  <td data-row="110" data-col="1">(0.016)</td>
+                  <td data-row="110" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="111" data-col="0">committee_elCommittee on Armed Services × partyRepublican</td>
+                  <td data-row="111" data-col="1">−0.005</td>
+                  <td data-row="111" data-col="2">−0.005</td>
+                </tr>
+                <tr>
+                  <td data-row="112" data-col="0"></td>
+                  <td data-row="112" data-col="1">(0.016)</td>
+                  <td data-row="112" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="113" data-col="0">committee_elCommittee on Banking, Housing, and Urban Affairs × partyRepublican</td>
+                  <td data-row="113" data-col="1">0.008</td>
+                  <td data-row="113" data-col="2">0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="114" data-col="0"></td>
+                  <td data-row="114" data-col="1">(0.018)</td>
+                  <td data-row="114" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="115" data-col="0">committee_elCommittee on Commerce, Science, and Transportation × partyRepublican</td>
+                  <td data-row="115" data-col="1">0.012</td>
+                  <td data-row="115" data-col="2">0.011</td>
+                </tr>
+                <tr>
+                  <td data-row="116" data-col="0"></td>
+                  <td data-row="116" data-col="1">(0.018)</td>
+                  <td data-row="116" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="117" data-col="0">committee_elCommittee on Education and the Workforce × partyRepublican</td>
+                  <td data-row="117" data-col="1">−0.006</td>
+                  <td data-row="117" data-col="2">−0.005</td>
+                </tr>
+                <tr>
+                  <td data-row="118" data-col="0"></td>
+                  <td data-row="118" data-col="1">(0.017)</td>
+                  <td data-row="118" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="119" data-col="0">committee_elCommittee on Energy and Commerce × partyRepublican</td>
+                  <td data-row="119" data-col="1">−0.007</td>
+                  <td data-row="119" data-col="2">−0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="120" data-col="0"></td>
+                  <td data-row="120" data-col="1">(0.016)</td>
+                  <td data-row="120" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="121" data-col="0">committee_elCommittee on Energy and Natural Resources × partyRepublican</td>
+                  <td data-row="121" data-col="1">−0.010</td>
+                  <td data-row="121" data-col="2">−0.011</td>
+                </tr>
+                <tr>
+                  <td data-row="122" data-col="0"></td>
+                  <td data-row="122" data-col="1">(0.020)</td>
+                  <td data-row="122" data-col="2">(0.020)</td>
+                </tr>
+                <tr>
+                  <td data-row="123" data-col="0">committee_elCommittee on Environment and Public Works × partyRepublican</td>
+                  <td data-row="123" data-col="1">0.016</td>
+                  <td data-row="123" data-col="2">0.013</td>
+                </tr>
+                <tr>
+                  <td data-row="124" data-col="0"></td>
+                  <td data-row="124" data-col="1">(0.020)</td>
+                  <td data-row="124" data-col="2">(0.020)</td>
+                </tr>
+                <tr>
+                  <td data-row="125" data-col="0">committee_elCommittee on Finance × partyRepublican</td>
+                  <td data-row="125" data-col="1">0.004</td>
+                  <td data-row="125" data-col="2">0.003</td>
+                </tr>
+                <tr>
+                  <td data-row="126" data-col="0"></td>
+                  <td data-row="126" data-col="1">(0.020)</td>
+                  <td data-row="126" data-col="2">(0.020)</td>
+                </tr>
+                <tr>
+                  <td data-row="127" data-col="0">committee_elCommittee on Financial Services × partyRepublican</td>
+                  <td data-row="127" data-col="1">−0.018</td>
+                  <td data-row="127" data-col="2">−0.018</td>
+                </tr>
+                <tr>
+                  <td data-row="128" data-col="0"></td>
+                  <td data-row="128" data-col="1">(0.016)</td>
+                  <td data-row="128" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="129" data-col="0">committee_elCommittee on Foreign Affairs × partyRepublican</td>
+                  <td data-row="129" data-col="1">0.001</td>
+                  <td data-row="129" data-col="2">0.000</td>
+                </tr>
+                <tr>
+                  <td data-row="130" data-col="0"></td>
+                  <td data-row="130" data-col="1">(0.016)</td>
+                  <td data-row="130" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="131" data-col="0">committee_elCommittee on Foreign Relations × partyRepublican</td>
+                  <td data-row="131" data-col="1">0.010</td>
+                  <td data-row="131" data-col="2">0.007</td>
+                </tr>
+                <tr>
+                  <td data-row="132" data-col="0"></td>
+                  <td data-row="132" data-col="1">(0.019)</td>
+                  <td data-row="132" data-col="2">(0.019)</td>
+                </tr>
+                <tr>
+                  <td data-row="133" data-col="0">committee_elCommittee on Health, Education, Labor, and Pensions × partyRepublican</td>
+                  <td data-row="133" data-col="1">−0.012</td>
+                  <td data-row="133" data-col="2">−0.011</td>
+                </tr>
+                <tr>
+                  <td data-row="134" data-col="0"></td>
+                  <td data-row="134" data-col="1">(0.022)</td>
+                  <td data-row="134" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="135" data-col="0">committee_elCommittee on Homeland Security × partyRepublican</td>
+                  <td data-row="135" data-col="1">−0.009</td>
+                  <td data-row="135" data-col="2">−0.010</td>
+                </tr>
+                <tr>
+                  <td data-row="136" data-col="0"></td>
+                  <td data-row="136" data-col="1">(0.018)</td>
+                  <td data-row="136" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="137" data-col="0">committee_elCommittee on Homeland Security and Governmental Affairs × partyRepublican</td>
+                  <td data-row="137" data-col="1">−0.020</td>
+                  <td data-row="137" data-col="2">−0.021</td>
+                </tr>
+                <tr>
+                  <td data-row="138" data-col="0"></td>
+                  <td data-row="138" data-col="1">(0.021)</td>
+                  <td data-row="138" data-col="2">(0.021)</td>
+                </tr>
+                <tr>
+                  <td data-row="139" data-col="0">committee_elCommittee on House Administration × partyRepublican</td>
+                  <td data-row="139" data-col="1">0.018</td>
+                  <td data-row="139" data-col="2">0.017</td>
+                </tr>
+                <tr>
+                  <td data-row="140" data-col="0"></td>
+                  <td data-row="140" data-col="1">(0.021)</td>
+                  <td data-row="140" data-col="2">(0.021)</td>
+                </tr>
+                <tr>
+                  <td data-row="141" data-col="0">committee_elCommittee on Indian Affairs × partyRepublican</td>
+                  <td data-row="141" data-col="1">−0.001</td>
+                  <td data-row="141" data-col="2">0.000</td>
+                </tr>
+                <tr>
+                  <td data-row="142" data-col="0"></td>
+                  <td data-row="142" data-col="1">(0.018)</td>
+                  <td data-row="142" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="143" data-col="0">committee_elCommittee on Natural Resources × partyRepublican</td>
+                  <td data-row="143" data-col="1">−0.014</td>
+                  <td data-row="143" data-col="2">−0.014</td>
+                </tr>
+                <tr>
+                  <td data-row="144" data-col="0"></td>
+                  <td data-row="144" data-col="1">(0.016)</td>
+                  <td data-row="144" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="145" data-col="0">committee_elCommittee on Oversight and Accountability × partyRepublican</td>
+                  <td data-row="145" data-col="1">−0.010</td>
+                  <td data-row="145" data-col="2">−0.011</td>
+                </tr>
+                <tr>
+                  <td data-row="146" data-col="0"></td>
+                  <td data-row="146" data-col="1">(0.017)</td>
+                  <td data-row="146" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="147" data-col="0">committee_elCommittee on Rules × partyRepublican</td>
+                  <td data-row="147" data-col="1">−0.001</td>
+                  <td data-row="147" data-col="2">−0.003</td>
+                </tr>
+                <tr>
+                  <td data-row="148" data-col="0"></td>
+                  <td data-row="148" data-col="1">(0.021)</td>
+                  <td data-row="148" data-col="2">(0.021)</td>
+                </tr>
+                <tr>
+                  <td data-row="149" data-col="0">committee_elCommittee on Rules and Administration × partyRepublican</td>
+                  <td data-row="149" data-col="1">−0.003</td>
+                  <td data-row="149" data-col="2">−0.004</td>
+                </tr>
+                <tr>
+                  <td data-row="150" data-col="0"></td>
+                  <td data-row="150" data-col="1">(0.027)</td>
+                  <td data-row="150" data-col="2">(0.027)</td>
+                </tr>
+                <tr>
+                  <td data-row="151" data-col="0">committee_elCommittee on Science, Space, and Technology × partyRepublican</td>
+                  <td data-row="151" data-col="1">0.002</td>
+                  <td data-row="151" data-col="2">0.002</td>
+                </tr>
+                <tr>
+                  <td data-row="152" data-col="0"></td>
+                  <td data-row="152" data-col="1">(0.018)</td>
+                  <td data-row="152" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="153" data-col="0">committee_elCommittee on Small Business × partyRepublican</td>
+                  <td data-row="153" data-col="1">−0.010</td>
+                  <td data-row="153" data-col="2">−0.009</td>
+                </tr>
+                <tr>
+                  <td data-row="154" data-col="0"></td>
+                  <td data-row="154" data-col="1">(0.022)</td>
+                  <td data-row="154" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="155" data-col="0">committee_elCommittee on Small Business and Entrepreneurship × partyRepublican</td>
+                  <td data-row="155" data-col="1">0.005</td>
+                  <td data-row="155" data-col="2">0.003</td>
+                </tr>
+                <tr>
+                  <td data-row="156" data-col="0"></td>
+                  <td data-row="156" data-col="1">(0.021)</td>
+                  <td data-row="156" data-col="2">(0.021)</td>
+                </tr>
+                <tr>
+                  <td data-row="157" data-col="0">committee_elCommittee on the Budget × partyRepublican</td>
+                  <td data-row="157" data-col="1">−0.011</td>
+                  <td data-row="157" data-col="2">−0.011</td>
+                </tr>
+                <tr>
+                  <td data-row="158" data-col="0"></td>
+                  <td data-row="158" data-col="1">(0.016)</td>
+                  <td data-row="158" data-col="2">(0.016)</td>
+                </tr>
+                <tr>
+                  <td data-row="159" data-col="0">committee_elCommittee on the Judiciary × partyRepublican</td>
+                  <td data-row="159" data-col="1">−0.004</td>
+                  <td data-row="159" data-col="2">−0.004</td>
+                </tr>
+                <tr>
+                  <td data-row="160" data-col="0"></td>
+                  <td data-row="160" data-col="1">(0.017)</td>
+                  <td data-row="160" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="161" data-col="0">committee_elCommittee on Transportation and Infrastructure × partyRepublican</td>
+                  <td data-row="161" data-col="1">−0.005</td>
+                  <td data-row="161" data-col="2">−0.005</td>
+                </tr>
+                <tr>
+                  <td data-row="162" data-col="0"></td>
+                  <td data-row="162" data-col="1">(0.017)</td>
+                  <td data-row="162" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="163" data-col="0">committee_elCommittee on Veterans' Affairs × partyRepublican</td>
+                  <td data-row="163" data-col="1">0.006</td>
+                  <td data-row="163" data-col="2">0.006</td>
+                </tr>
+                <tr>
+                  <td data-row="164" data-col="0"></td>
+                  <td data-row="164" data-col="1">(0.018)</td>
+                  <td data-row="164" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="165" data-col="0">committee_elCommittee on Ways and Means × partyRepublican</td>
+                  <td data-row="165" data-col="1">0.001</td>
+                  <td data-row="165" data-col="2">−0.000</td>
+                </tr>
+                <tr>
+                  <td data-row="166" data-col="0"></td>
+                  <td data-row="166" data-col="1">(0.017)</td>
+                  <td data-row="166" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="167" data-col="0">committee_elJoint Committee on Printing × partyRepublican</td>
+                  <td data-row="167" data-col="1">−0.013</td>
+                  <td data-row="167" data-col="2">−0.013</td>
+                </tr>
+                <tr>
+                  <td data-row="168" data-col="0"></td>
+                  <td data-row="168" data-col="1">(0.026)</td>
+                  <td data-row="168" data-col="2">(0.026)</td>
+                </tr>
+                <tr>
+                  <td data-row="169" data-col="0">committee_elJoint Committee on Taxation × partyRepublican</td>
+                  <td data-row="169" data-col="1">0.003</td>
+                  <td data-row="169" data-col="2">0.003</td>
+                </tr>
+                <tr>
+                  <td data-row="170" data-col="0"></td>
+                  <td data-row="170" data-col="1">(0.031)</td>
+                  <td data-row="170" data-col="2">(0.031)</td>
+                </tr>
+                <tr>
+                  <td data-row="171" data-col="0">committee_elJoint Economic Committee × partyRepublican</td>
+                  <td data-row="171" data-col="1">−0.012</td>
+                  <td data-row="171" data-col="2">−0.012</td>
+                </tr>
+                <tr>
+                  <td data-row="172" data-col="0"></td>
+                  <td data-row="172" data-col="1">(0.018)</td>
+                  <td data-row="172" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="173" data-col="0">committee_elPermanent Select Committee on Intelligence × partyRepublican</td>
+                  <td data-row="173" data-col="1">−0.007</td>
+                  <td data-row="173" data-col="2">−0.008</td>
+                </tr>
+                <tr>
+                  <td data-row="174" data-col="0"></td>
+                  <td data-row="174" data-col="1">(0.017)</td>
+                  <td data-row="174" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="175" data-col="0">committee_elSelect Committee on Ethics × partyRepublican</td>
+                  <td data-row="175" data-col="1">−0.009</td>
+                  <td data-row="175" data-col="2">−0.010</td>
+                </tr>
+                <tr>
+                  <td data-row="176" data-col="0"></td>
+                  <td data-row="176" data-col="1">(0.022)</td>
+                  <td data-row="176" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="177" data-col="0">committee_elSelect Committee on Intelligence × partyRepublican</td>
+                  <td data-row="177" data-col="1">−0.010</td>
+                  <td data-row="177" data-col="2">−0.010</td>
+                </tr>
+                <tr>
+                  <td data-row="178" data-col="0"></td>
+                  <td data-row="178" data-col="1">(0.018)</td>
+                  <td data-row="178" data-col="2">(0.018)</td>
+                </tr>
+                <tr>
+                  <td data-row="179" data-col="0">committee_elSelect Committee on the Climate Crisis × partyRepublican</td>
+                  <td data-row="179" data-col="1">0.019</td>
+                  <td data-row="179" data-col="2">0.020</td>
+                </tr>
+                <tr>
+                  <td data-row="180" data-col="0"></td>
+                  <td data-row="180" data-col="1">(0.022)</td>
+                  <td data-row="180" data-col="2">(0.022)</td>
+                </tr>
+                <tr>
+                  <td data-row="181" data-col="0">committee_elSelect Committee on the Strategic Competition Between the United States and the Chinese Communist Party × partyRepublican</td>
+                  <td data-row="181" data-col="1">−0.014</td>
+                  <td data-row="181" data-col="2">−0.014</td>
+                </tr>
+                <tr>
+                  <td data-row="182" data-col="0"></td>
+                  <td data-row="182" data-col="1">(0.031)</td>
+                  <td data-row="182" data-col="2">(0.031)</td>
+                </tr>
+                <tr>
+                  <td data-row="183" data-col="0">committee_elSpecial Committee on Aging × partyRepublican</td>
+                  <td data-row="183" data-col="1">0.003</td>
+                  <td data-row="183" data-col="2">0.002</td>
+                </tr>
+                <tr>
+                  <td data-row="184" data-col="0"></td>
+                  <td data-row="184" data-col="1">(0.017)</td>
+                  <td data-row="184" data-col="2">(0.017)</td>
+                </tr>
+                <tr>
+                  <td data-row="185" data-col="0">committee_elUnited States Senate Caucus on International Narcotics Control × partyRepublican</td>
+                  <td data-row="185" data-col="1">−0.011</td>
+                  <td data-row="185" data-col="2">−0.008</td>
+                </tr>
+                <tr>
+                  <td data-row="186" data-col="0"></td>
+                  <td data-row="186" data-col="1">(0.024)</td>
+                  <td data-row="186" data-col="2">(0.024)</td>
+                </tr>
+                <tr>
+                  <td data-row="187" data-col="0">age</td>
+                  <td data-row="187" data-col="1"></td>
+                  <td data-row="187" data-col="2">−0.000</td>
+                </tr>
+                <tr>
+                  <td data-row="188" data-col="0"></td>
+                  <td data-row="188" data-col="1"></td>
+                  <td data-row="188" data-col="2">(0.000)</td>
+                </tr>
+                <tr>
+                  <td data-row="189" data-col="0">seniority</td>
+                  <td data-row="189" data-col="1"></td>
+                  <td data-row="189" data-col="2">−0.000</td>
+                </tr>
+                <tr>
+                  <td data-row="190" data-col="0"></td>
+                  <td data-row="190" data-col="1"></td>
+                  <td data-row="190" data-col="2">(0.000)</td>
+                </tr>
+                <tr>
+                  <td data-row="191" data-col="0">genderMale</td>
+                  <td data-row="191" data-col="1"></td>
+                  <td data-row="191" data-col="2">−0.004**</td>
+                </tr>
+                <tr>
+                  <td data-row="192" data-col="0"></td>
+                  <td data-row="192" data-col="1"></td>
+                  <td data-row="192" data-col="2">(0.001)</td>
+                </tr>
+                <tr>
+                  <td data-row="193" data-col="0">Num.Obs.</td>
+                  <td data-row="193" data-col="1">1180</td>
+                  <td data-row="193" data-col="2">1180</td>
+                </tr>
+                <tr>
+                  <td data-row="194" data-col="0">R2</td>
+                  <td data-row="194" data-col="1">0.173</td>
+                  <td data-row="194" data-col="2">0.181</td>
+                </tr>
+                <tr>
+                  <td data-row="195" data-col="0">R2 Adj.</td>
+                  <td data-row="195" data-col="1">0.103</td>
+                  <td data-row="195" data-col="2">0.110</td>
+                </tr>
+                <tr>
+                  <td data-row="196" data-col="0">AIC</td>
+                  <td data-row="196" data-col="1">−5929.0</td>
+                  <td data-row="196" data-col="2">−5934.7</td>
+                </tr>
+                <tr>
+                  <td data-row="197" data-col="0">BIC</td>
+                  <td data-row="197" data-col="1">−5452.1</td>
+                  <td data-row="197" data-col="2">−5442.6</td>
+                </tr>
+                <tr>
+                  <td data-row="198" data-col="0">Log.Lik.</td>
+                  <td data-row="198" data-col="1">3058.504</td>
+                  <td data-row="198" data-col="2">3064.349</td>
+                </tr>
+                <tr>
+                  <td data-row="199" data-col="0">RMSE</td>
+                  <td data-row="199" data-col="1">0.02</td>
+                  <td data-row="199" data-col="2">0.02</td>
+                </tr>
+        </tbody>
+      </table>
+    </div>
+<!-- hack to avoid NA insertion in last line -->

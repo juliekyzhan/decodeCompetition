@@ -1,5 +1,5 @@
 ---
-title: "descriptive_analysis_1112"
+title: "descriptive_analysis"
 author: "Kunya Zhan"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
@@ -28,30 +28,34 @@ This Quarto document reorganizes the analyses from *data_mining_1111.qmd*, with 
 #| label: setup
 #| include: false
 
-# Create an output directory if it doesn't exist
-output_dir <- "output"
-if (!dir.exists(output_dir)) dir.create(output_dir)
+# ---- Prevent Mac from sleeping during long render ----
+system("caffeinate -dimsu &")
+on.exit(system("killall caffeinate"), add = TRUE)
+cat("☕ macOS sleep prevention active for this Quarto render...\n")
 
-# Default chunk options
+
+# ---- Create a unified output directory ----
+output_dir <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/analysis_output"
+fig_dir <- file.path(output_dir, "figures")
+cache_dir <- file.path(output_dir, "cache")
+
 knitr::opts_chunk$set(
   echo = TRUE,
-  fig.path = file.path(output_dir, ""),   # figures from chunks
-  cache.path = file.path(output_dir, "cache/")
+  fig.path = fig_dir,
+  cache.path = cache_dir
 )
 
 # A helper function to save plots/data consistently
-save_to_output <- function(filename, plot = NULL, data = NULL, ...) {
+save_to_output <- function(filename, plot = NULL, ...) {
   full_path <- file.path(output_dir, filename)
+  
   dir.create(dirname(full_path), recursive = TRUE, showWarnings = FALSE)
   
   if (!is.null(plot)) {
-    ggplot2::ggsave(filename = full_path, plot = plot, ...)
+    ggplot2::ggsave(full_path, plot = plot, ...)
     message("✅ Saved plot to: ", full_path)
-  } else if (!is.null(data)) {
-    write.csv(data, full_path, row.names = FALSE, ...)
-    message("✅ Saved data to: ", full_path)
   } else {
-    message("⚠️ No plot or data provided. Returning path only: ", full_path)
+    message("⚠️ No plot provided. Returning path only: ", full_path)
   }
   
   return(full_path)
@@ -106,34 +110,34 @@ lapply(packages, library, character.only = TRUE)
 
 # ----- main databases -----
 # train data
-legis_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/data_mining/input/1022data/legis_analysis_all.xlsx"
+legis_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/LightGBM_output_1022/legis_analysis_all.xlsx"
 legis_all <- read_excel(legis_path)
 
 # lightgbm original result 
-legis_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/data_mining/input/1022data/legis_train_data.csv")
+legis_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/LightGBM_output_1022/legis_train_data.csv")
 legis_data <- legis_data %>%
   mutate(issue = str_to_title(issue)) # clean issue format
 
 # lightgbm cleaned result
 # cleaning methods on "data_mining_1111.qmd"
-legis_sum1 <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/ds_input/legis_sum1.csv")
+legis_sum1 <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_processed/legis_sum1.csv")
 
 
 # ----- supplementary databases -----
 # legislator identity data
-bioguide_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/data_mining/input/members_district_1103.xlsx"
+bioguide_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/members_district_1103.xlsx"
 bioguide <- read_excel(bioguide_path)
 
 # original news data
-news_data_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/data_mining/input/115_118_news_data_new1.csv"
+news_data_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/LightGBM_raw/115_118_news_data.csv"
 news_data <- read_csv(news_data_path)
 
 # original legislative data
-bills_data_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/data_mining/input/115-118_congress_data_new.csv"
+bills_data_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/LightGBM_raw/115-118_congress_data.csv"
 bills_data <- read_csv(bills_data_path)
 
 # district data
-district_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/data_mining/input/district_data/district_data.csv")
+district_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/data/analysis_raw/constituency_features/constituency_features.csv")
 ```
 
 ## 1.2 matching variables and special patch
@@ -312,7 +316,7 @@ generate function: generate_decision_with_issue()
 #| label: generate decision with issues
 #| echo: false
 
-generate_decision_with_issues_issue_level <- function(df, set_name = "all") {
+generate_decision_with_issues <- function(df, set_name = "all") {
   # Step 1: Optional filter by dataset (train/test)
   if (set_name %in% c("train", "test")) {
     df <- df %>% filter(dataset == set_name)
@@ -2152,8 +2156,6 @@ test_party
 test_gender
 test_chamber
 test_ideo
-
-
 ```
 
 ```{r}
@@ -2183,32 +2185,6 @@ plot_mode_means(legis_cg1, party, "Mode Differences by Party")
 plot_mode_means(legis_cg1, gender, "Mode Differences by Gender")
 plot_mode_means(legis_cg1, chamber, "Mode Differences by Chamber")
 plot_mode_means(legis_cg1, ideology_q, "Mode Differences by Ideology Quartile")
-
-
-
-```
-
-```{r}
-#| label: household income and white_ratio
-#| echo: false
-
-ggplot(legis_merged, aes(x = white_ratio, y = blue_collar_share, color = party)) +
-  geom_point(alpha = 0.7) +  # 绘制所有点，颜色区分党派
-  geom_smooth(method = "lm", se = FALSE, aes(group = party)) +  # 添加回归线，按党派分组
-  scale_color_manual(values = c("Democratic" = "#2E74C0", "Republican" = "#CB454A")) +  # 设置党派颜色
-  labs(title = "Relationship Between White Ratio and Blue Collar by Party",
-       x = "White Ratio",
-       y = "Blue Collar") +
-  theme_minimal() +
-  theme(legend.title = element_blank())  # 去掉图例标题
-
-ggplot(legis_merged %>% filter(party == "Republican"), aes(x = black_or_african_american_ratio, y = median_household_income_that_year)) +
-  geom_point(alpha = 0.7, color = "#CB454A") +  # 共和党选区
-  geom_smooth(method = "lm", se = FALSE, color = "black") +  # 添加回归线
-  labs(title = "Relationship Between Black Ratio and Household Income in Republican Districts",
-       x = "Black Ratio",
-       y = "Median Household Income") +
-  theme_minimal()
 
 ```
 
@@ -3074,6 +3050,29 @@ modelsummary(
 )
 ```
 
+```{r}
+#| label: household income and white_ratio
+#| echo: false
+
+ggplot(legis_merged, aes(x = white_ratio, y = blue_collar_share, color = party)) +
+  geom_point(alpha = 0.7) +  # 绘制所有点，颜色区分党派
+  geom_smooth(method = "lm", se = FALSE, aes(group = party)) +  # 添加回归线，按党派分组
+  scale_color_manual(values = c("Democratic" = "#2E74C0", "Republican" = "#CB454A")) +  # 设置党派颜色
+  labs(title = "Relationship Between White Ratio and Blue Collar by Party",
+       x = "White Ratio",
+       y = "Blue Collar") +
+  theme_minimal() +
+  theme(legend.title = element_blank())  # 去掉图例标题
+
+ggplot(legis_merged %>% filter(party == "Republican"), aes(x = black_or_african_american_ratio, y = median_household_income_that_year)) +
+  geom_point(alpha = 0.7, color = "#CB454A") +  # 共和党选区
+  geom_smooth(method = "lm", se = FALSE, color = "black") +  # 添加回归线
+  labs(title = "Relationship Between Black Ratio and Household Income in Republican Districts",
+       x = "Black Ratio",
+       y = "Median Household Income") +
+  theme_minimal()
+```
+
 ## 6.5 white_ratio
 
 ```{r}
@@ -3791,25 +3790,20 @@ modelsummary(
 #| label: individual_analysis_lasso_dem_commmittee_el
 #| echo: false
 
-# 将 committee_el 转换为虚拟变量（如果它是因子变量）
-committee_el_dummies <- model.matrix(~ committee_el - 1, data = legis_merged)
+# 先去掉 committee_el 或 prof_percentage 的 NA
+legis_subset <- legis_merged[!is.na(legis_merged$committee_el) & !is.na(legis_merged$prof_percentage), ]
 
-# 因变量：prof_percentage
-y <- legis_merged$prof_percentage
+# 构建虚拟变量
+committee_el_dummies <- model.matrix(~ committee_el - 1, data = legis_subset)
 
-# Lasso 回归（L1 正则化）
+# 因变量
+y <- legis_subset$prof_percentage
+
+# Lasso 回归
 lasso_model <- cv.glmnet(committee_el_dummies, y, alpha = 1, family = "gaussian")
 
-# Ridge 回归（L2 正则化）
+# Ridge 回归
 ridge_model <- cv.glmnet(committee_el_dummies, y, alpha = 0, family = "gaussian")
-
-# 查看最佳的 lambda（惩罚系数）
-lasso_model$lambda.min  # Lasso 最优 lambda
-ridge_model$lambda.min  # Ridge 最优 lambda
-
-# 查看系数
-coef(lasso_model, s = "lambda.min")
-coef(ridge_model, s = "lambda.min")
 
 ```
 
@@ -3890,9 +3884,6 @@ model2 <- lm(
   data = legis_cg_clean
 )
 
-# 查看模型摘要
-summary(model)
-
 
 modelsummary(
   list(
@@ -3908,40 +3899,6 @@ modelsummary(
 
 pred <- ggpredict(model1, terms = c("committee_el", "party"))
 plot(pred)
-
-
-```
-
-```{r}
-#| label: pca analysis
-#| echo: false
-
-
-# 1. 将 committee_el 转换为虚拟变量
-committee_el_dummies <- model.matrix(~ committee_el - 1, data = legis_merged)
-
-head(committee_el_dummies)
-
-# 2. 对虚拟变量进行 PCA
-committee_el_pca <- prcomp(committee_el_dummies, scale. = TRUE)
-
-summary(committee_el_pca)  # 显示每个主成分的解释方差比例
-
-# 3. 选择主成分
-committee_el_pca_scores <- committee_el_pca$x[, 1:2]
-
-head(committee_el_pca_scores)
-
-# 4. 将主成分作为新的特征加入模型：
-legis_merged <- legis_merged %>%
-  bind_cols(data.frame(committee_el_pca_scores))
-
-model_pca <- lm(
-  prof_percentage ~ PC1 + PC2 + party + age + seniority + ideology + gender + factor(congress),
-  data = legis_merged
-)
-
-summary(model_pca)
 ```
 
 ## 7.2 committee_prof
@@ -5845,5 +5802,3 @@ modelsummary(
   escape = FALSE
 )
 ```
-
-# 9. issue

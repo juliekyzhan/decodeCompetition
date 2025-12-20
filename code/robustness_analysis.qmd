@@ -21,11 +21,11 @@ editor: visual
 
 This quarto document aims at reorganizing the codes at 'robustness-check-bayesian'. It serves two main purposes.
 
-1\. Evaluate whether the prediction of legislators' issue-specific advertising and legislative behaviors is reliable (**predictive validity**).
+1\. Evaluate whether the prediction of legislators' issue-specific legistising and legislative behaviors is reliable (**predictive validity**).
 
 2\. Test whether the identification of the three decision-making modes is consistent and credible (**discriminant validity**)
 
-Accordingly, the variables used in the robustness analysis are aligned with those in the final LightGBM model. However, given the structural characteristics of the dataset, the analysis further controls for the unobserved heterogeneity embedded in legislator, issue, and Congress-session levels. This allows for a cleaner assessment of how the proposed matching mechanism explains legislators' advertising and legislative behaviors on specific issues.
+Accordingly, the variables used in the robustness analysis are aligned with those in the final LightGBM model. However, given the structural characteristics of the dataset, the analysis further controls for the unobserved heterogeneity embedded in legislator, issue, and Congress-session levels. This allows for a cleaner assessment of how the proposed matching mechanism explains legislators' legislative behaviors on specific issues.
 
 ## set up
 
@@ -42,23 +42,24 @@ cat("☕ macOS sleep prevention active for this Quarto render...\n")
 
 
 # ---- Create a unified output directory ----
-output_dir <- "output"
-if (!dir.exists(output_dir)) dir.create(output_dir)
+output_dir <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/robust_output"
+fig_dir <- file.path(output_dir, "figures")
+cache_dir <- file.path(output_dir, "cache")
 
-# Default chunk options
 knitr::opts_chunk$set(
   echo = TRUE,
-  fig.path = file.path(output_dir, ""),   # figures from chunks
-  cache.path = file.path(output_dir, "cache/")
+  fig.path = fig_dir,
+  cache.path = cache_dir
 )
 
 # A helper function to save plots/data consistently
 save_to_output <- function(filename, plot = NULL, ...) {
   full_path <- file.path(output_dir, filename)
   
-  # 如果提供了 plot，则用 ggsave 保存
+  dir.create(dirname(full_path), recursive = TRUE, showWarnings = FALSE)
+  
   if (!is.null(plot)) {
-    ggplot2::ggsave(filename = full_path, plot = plot, ...)
+    ggplot2::ggsave(full_path, plot = plot, ...)
     message("✅ Saved plot to: ", full_path)
   } else {
     message("⚠️ No plot provided. Returning path only: ", full_path)
@@ -109,14 +110,10 @@ lapply(packages, library, character.only = TRUE)
 #| warning: false
 
 # ----- main databases -----
-adver_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/input/1022data/adver_analysis_all.xlsx"
-legis_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/input/1022data/legis_analysis_all.xlsx"
-
-adver_all <- read_excel(adver_path)
+legis_path <- "/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/LightGBM_output_1022/legis_analysis_all.xlsx"
 legis_all <- read_excel(legis_path)
 
-adver_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/input/1022data/adver_train_data.csv")
-legis_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/descriptive analysis/input/1022data/legis_train_data.csv")
+legis_data <- read_csv("/Users/kunyazhan/Documents/GitHub/decodeCompetition/output/LightGBM_output_1022/legis_train_data.csv")
 ```
 
 ## constructing train and test data
@@ -169,29 +166,29 @@ align_factor_levels <- function(train, test) {
 #| message: false
 #| warning: false
 
-prepare_data_pipeline <- function(adver_all, adver_data, match_vars, cat_vars_to_lump, numeric_vars) {
+prepare_data_pipeline <- function(legis_all, legis_data, match_vars, cat_vars_to_lump, numeric_vars) {
   set.seed(123)
 
   # --- Step 1: Rename matching features before merging ---
-  adver_data_raw <- adver_data %>%
+  legis_data_raw <- legis_data %>%
   rename_with(.cols = intersect(names(.), match_vars), .fn = ~ paste0(.x, "_raw"))
 
   # check whether raw vars were successfully created
-  raw_vars <- grep("_raw$", names(adver_data_raw), value = TRUE)
+  raw_vars <- grep("_raw$", names(legis_data_raw), value = TRUE)
 if (length(raw_vars) == 0) {
-  stop("No '_raw' variables were created. Please check match_vars and adver_data column names.")
+  stop("No '_raw' variables were created. Please check match_vars and legis_data column names.")
 }
   
-  # merge into adver_all
-  adver_all <- adver_all %>%
+  # merge into legis_all
+  legis_all <- legis_all %>%
   left_join(
-    adver_data_raw %>%
+    legis_data_raw %>%
       select(full_name, issue, congress, all_of(raw_vars)),
     by = c("full_name", "issue", "congress")
   )
 
   # --- Step 1.5: Merge related category variables to reduce collinearity ---
-  adver_all <- adver_all %>%
+  legis_all <- legis_all %>%
     mutate(
       industry_main = coalesce(industry_tp1, industry_tp2, industry_tp3),
       industry_main = fct_lump(fct_explicit_na(industry_main, na_level = "NA"), n = 10),
@@ -203,15 +200,15 @@ if (length(raw_vars) == 0) {
     )
 
   # --- Step 2: Split the dataset into training and test subsets ---
-  adver_all$pair_id <- paste(adver_all$full_name, adver_all$issue, sep = "_")
-  unique_pairs <- unique(adver_all$pair_id)
+  legis_all$pair_id <- paste(legis_all$full_name, legis_all$issue, sep = "_")
+  unique_pairs <- unique(legis_all$pair_id)
   train_units <- sample(unique_pairs, size = floor(0.7 * length(unique_pairs)))
 
-  adver_all <- adver_all %>%
+  legis_all <- legis_all %>%
     mutate(set = ifelse(pair_id %in% train_units, "train", "test"))
 
-  train_data <- adver_all %>% filter(set == "train")
-  test_data <- adver_all %>%
+  train_data <- legis_all %>% filter(set == "train")
+  test_data <- legis_all %>%
     filter(set == "test" & full_name %in% train_data$full_name & issue %in% train_data$issue)
 
   # --- Step 3: Convert character variables into factors ---
@@ -309,18 +306,6 @@ cat_vars_to_lump <- c(
 numeric_vars <- c("party_tp_score", "npvi")
 
 # ----- excute -----
-# adver
-processed_adver <- prepare_data_pipeline(
-  adver_all, 
-  adver_data, 
-  match_vars, 
-  cat_vars_to_lump, 
-  numeric_vars)
-
-train_data_adver <- processed_adver$train
-test_data_adver  <- processed_adver$test
-
-# legis
 processed_legis <- prepare_data_pipeline(
   legis_all, 
   legis_data, 
@@ -384,13 +369,7 @@ formula_match <- bf(
 #| message: true
 #| warning: true
 
-# adver
-priors_base_check <- get_prior(formula_base, data = train_data_adver, family = bernoulli())
-priors_baseline_check <- get_prior(formula_baseline, data = train_data_adver, family = bernoulli())
-priors_raw_check  <- get_prior(formula_raw, data = train_data_adver, family = bernoulli())
-priors_match_check <- get_prior(formula_match, data = train_data_adver, family = bernoulli())
-
-# check parameters legis
+# check parameters
 priors_base_legis_check <- get_prior(formula_base, data = train_data_legis, family = bernoulli())
 priors_baseline_legis_check <- get_prior(formula_baseline, data = train_data_legis, family = bernoulli())
 priors_raw_legis_check  <- get_prior(formula_raw, data = train_data_legis, family = bernoulli())
@@ -601,134 +580,9 @@ if (length(roc_list) >= 2) {
 }
 ```
 
-## Adver
-
-### model training
-
-```{r}
-#| label: adver_predictive model training
-#| echo: false
-#| message: true
-#| warning: true
-
-# ------ model training ----- 
-bayes_base <- brm(formula_base, data = train_data_adver, family = bernoulli(),
-                  prior = priors_base, iter = n_iter, chains = n_chains,
-                  seed = 123, control = list(adapt_delta = 0.9))
-
-bayes_baseline <- brm(formula_baseline, data = train_data_adver, family = bernoulli(),
-                 prior = priors_mechanism, iter = n_iter, chains = n_chains,
-                 seed = 123, control = list(adapt_delta = 0.9))
-
-bayes_raw <- brm(formula_raw, data = train_data_adver, family = bernoulli(),
-                 prior = priors_mechanism, iter = n_iter, chains = n_chains,
-                 seed = 123, control = list(adapt_delta = 0.9))
-
-bayes_match <- brm(formula_match, data = train_data_adver, family = bernoulli(),
-                   prior = priors_mechanism, iter = n_iter, chains = n_chains,
-                   seed = 123, control = list(adapt_delta = 0.9))
-```
-
-```{r}
-#| label: adver_predictive model results
-#| echo: false
-#| message: true
-#| warning: true
-
-# ------ LOO ----- 
-loo_base <- loo(bayes_base)
-loo_baseline <- loo(bayes_baseline)
-loo_raw <- loo(bayes_raw)
-loo_match <- loo(bayes_match)
-
-# ------ Bayes R2 ----- 
-bayes_r2_brms <- function(model) bayes_R2(model)[1]
-
-results <- tibble(
-  Model = c("Base","Baseline", "Raw", "Match"),
-  LOOIC = c(loo_base$estimates["looic", "Estimate"],
-            loo_baseline$estimates["looic", "Estimate"],
-            loo_raw$estimates["looic", "Estimate"],
-            loo_match$estimates["looic", "Estimate"]),
-  Bayes_R2 = c(bayes_r2_brms(bayes_base),
-                bayes_r2_brms(bayes_baseline),
-                bayes_r2_brms(bayes_raw),
-                bayes_r2_brms(bayes_match))
-)
-
-results %>% kable(caption = "Bayesian Model Comparison: LOOIC and Approximate Pseudo-R2")
-```
-
-### posterior diagnosis
-
-```{r}
-#| label: adver_predictive posterior diagnosis
-#| echo: false
-#| message: true
-#| warning: true
-
-results_base <- bayes_posterior_diagnosis(
-  model = bayes_base,
-  model_name = "BASE",
-  n_trace = 6,
-  save_path_prefix = "outputs/bayes_base_diagnosis"
-)
-
-results_baseline <- bayes_posterior_diagnosis(
-  model = bayes_baseline,
-  model_name = "BASELINE",
-  n_trace = 6,
-  save_path_prefix = "outputs/bayes_baseline_diagnosis"
-)
-
-results_raw <- bayes_posterior_diagnosis(
-  model = bayes_raw,
-  model_name = "RAW",
-  n_trace = 6,
-  save_path_prefix = "outputs/bayes_raw_diagnosis"
-)
-
-
-results_match <-bayes_posterior_diagnosis(
-  model = bayes_match,
-  model_name = "MATCH",
-  n_trace = 6,
-  save_path_prefix = "outputs/bayes_match_diagnosis"
-)
-```
-
-### auc comparison
-
-```{r}
-#| label: adver_predictive auc compasion
-#| echo: false 
-#| message: true 
-#| warning: true
-
-# models list
-models_adver_compare <- list(
-  Base = bayes_base,
-  Baseline = bayes_baseline,
-  Raw = bayes_raw,
-  Match = bayes_match
-)
-
-# auc comparsion and tables outprint
-compare_bayes_auc(models_adver_compare, test_data = test_data_adver)
-```
-
 ## Legis
 
 ### model training
-
-```{r}
-#| label: legis_predictive model prepartion
-#| echo: false 
-#| message: true 
-#| warning: true
-
-
-```
 
 ```{r}
 #| label: legis_predictive model training
@@ -767,6 +621,8 @@ loo_match_legis <- loo(bayes_match_legis)
 
 
 # 2. bayes r2 
+bayes_r2_brms <- function(model) bayes_R2(model)[1]
+
 results <- tibble(
   Model = c("Base-legis", "Baseline-legis", "Raw-legis", "Match-legis"),
   LOOIC = c(loo_base_legis$estimates["looic", "Estimate"],
@@ -954,17 +810,6 @@ the following three functions was meant to complete: compares bayesian model coe
 3.  visualizes SHAP vs bayesian coefficients in a scatter plot \# major goal: assessing model interpretability consistenct across frameworks
 
 ```{r}
-#| label: shap values comparison function debug 
-#| echo: false 
-#| message: true 
-#| warning: true
-
-# debug_once(compare_bayes_vs_shap_data)
-# results_adver <- run_bayes_shap_all_models(model_list, adver_all, match_vars)
-
-```
-
-```{r}
 #| label: shap values comparison function1 
 #| echo: false 
 #| message: true 
@@ -1141,159 +986,6 @@ run_bayes_shap_all_models <- function(model_list, shap_data, match_vars, set_nam
     })
   }) %>% purrr::compact()
 }
-```
-
-## Adver
-
-### model training
-
-```{r}
-#| label: adver_discriminant model training
-#| echo: false 
-#| message: true 
-#| warning: true
-
-# ----- model training ----
-bayes_base <- brm(formula_base, data = train_data_adver, family = bernoulli(),
-                  prior = prior_base, iter = 1000, chains = 2, seed = 123)
-
-bayes_intl <- brm(formula_intl, data = train_data_adver, family = bernoulli(),
-                  prior = prior_mechanism, iter = 1000, chains = 2, seed = 123)
-
-bayes_intldom <- brm(formula_intldom, data = train_data_adver, family = bernoulli(),
-                 prior = prior_mechanism, iter = 1000, chains = 2, seed = 123)
-
-bayes_domprof <- brm(formula_domprof, data = train_data_adver, family = bernoulli(),
-                  prior = prior_mechanism, iter = 1000, chains = 2, seed = 123)
-
-bayes_intlprof <- brm(formula_intlprof, data = train_data_adver, family = bernoulli(),
-                  prior = prior_mechanism, iter = 1000, chains = 2, seed = 123)
-
-bayes_match <- brm(formula_match, data = train_data_adver, family = bernoulli(),
-                  prior = prior_mechanism, iter = 1000, chains = 2, seed = 123)
-```
-
-```{r}
-#| label: adver_discriminant results
-#| echo: false 
-#| message: true 
-#| warning: true
-
-# ----- loo comparsion -----
-loo_base <- loo(bayes_base)
-loo_intl <- loo(bayes_intl)
-loo_intldom  <- loo(bayes_intldom)
-loo_domprof <- loo(bayes_domprof)
-loo_intlprof <- loo(bayes_intlprof)
-loo_match <- loo(bayes_match)
-
-loo_intl$estimates["elpd_loo", "Estimate"]
-loo_intldom$estimates["elpd_loo", "Estimate"]
-loo_domprof$estimates["elpd_loo", "Estimate"]
-loo_intlprof$estimates["elpd_loo", "Estimate"]
-loo_match$estimates["elpd_loo", "Estimate"]
-
-# tables compares loo
-loo_compare_mechanism <- loo_compare(loo_base, loo_intl, loo_intldom, loo_domprof, loo_intlprof, loo_match)
-print(loo_compare_mechanism)
-
-# visualization loo comparison
-plot(loo_compare_mechanism, label_points = TRUE, main = "Bayesian Mechanism Models: LOOIC Comparison")
-
-# ----- bayes r2 -----
-
-r2_mechanism_models_bayes <- tibble::tibble(
-  Model = c("BASE", "INTL", "INTLDOM", "DOMPROF", "INTLPROF", "ALL"),
-  Pseudo_R2 = c(bayes_r2_brms(bayes_base),
-                bayes_r2_brms(bayes_intl),
-                bayes_r2_brms(bayes_intldom),
-                bayes_r2_brms(bayes_domprof),
-                bayes_r2_brms(bayes_intlprof),
-                bayes_r2_brms(bayes_match))
-)
-
-# 5. tables outprint
-knitr::kable(r2_mechanism_models_bayes, caption = "Bayesian Pseudo R² Comparison (Mechanism Models)")
-```
-
-### variables importance comparison
-
-```{r}
-#| label: adver_discriminant variables importance comparison 
-#| echo: false 
-#| message: true 
-#| warning: true
-
-base_result     <- bayes_value_importance_v2(bayes_base, model_name = "BASE")
-intl_result     <- bayes_value_importance_v2(bayes_intl, model_name = "INTL")
-intldom_result  <- bayes_value_importance_v2(bayes_intldom, model_name = "INTLDOM")
-domprof_result  <- bayes_value_importance_v2(bayes_domprof, model_name = "DOMPROF")
-intlprof_result <- bayes_value_importance_v2(bayes_intlprof, model_name = "INTLPROF")
-match_result    <- bayes_value_importance_v2(bayes_match, model_name = "MATCH")
-```
-
-### comparions with shap values
-
-```{r}
-#| label: adver_discriminant with shap values adver
-#| echo: false 
-#| message: true 
-#| warning: true
-
-model_list <- list(
-  INTL      = bayes_intl,
-  INTLDOM   = bayes_intldom,
-  DOMPROF   = bayes_domprof,
-  INTLPROF  = bayes_intlprof,
-  MATCH     = bayes_match
-)
-results_adver <- run_bayes_shap_all_models(model_list, adver_all, match_vars, suffix = "")
-print(results_adver)
-
-summary_adver_shap <- purrr::imap_dfr(results_adver, ~ tibble::tibble(
-  Model = .y,
-  Direction_Match_Rate = .x$summary$Direction_Match_Rate,
-  Pearson_Correlation   = .x$summary$Pearson_Correlation,
-  Abs_Correlation       = .x$summary$Abs_Value_Correlation
-))
-print(summary_adver_shap)
-
-```
-
-```{r}
-#| label: adver_discriminant with shap values adver debug
-#| echo: false 
-#| message: true 
-#| warning: true
-
-# diagnose_models <- function(model_list, match_vars, suffix = "_raw") {
-#  out <- list()
-#  for (nm in names(model_list)) {
-#    mod <- model_list[[nm]]
-#    cat("\n---- MODEL:", nm, "----\n")
-#    coef_b <- tryCatch(names(fixef(mod)[, "Estimate"]), error = function(e) NULL)
-#    print(head(coef_b, 30))
-#    if (is.null(coef_b)) {
-#      cat("  >> cannot extract fixef() names (model type mismatch?)\n")
-#      out[[nm]] <- list(coef_names = NA_character_, matched = character(0))
-#      next
-#    }
-#    # exact intersections
-#    inter1 <- intersect(coef_b, match_vars)
-#    inter2 <- intersect(coef_b, paste0(match_vars, suffix))
-#    # fuzzy: coef names that start with any match_var or match_var+suffix
-#    fuzzy_matches <- coef_b[sapply(coef_b, function(x) any(vapply(match_vars, function(mv) #grepl(paste0("^", mv), x), logical(1))))]
-#    fuzzy_with_suffix <- coef_b[sapply(coef_b, function(x) any(vapply(paste0(match_vars, #suffix), function(mv) grepl(paste0("^", mv), x), logical(1))))]
-#    cat("  exact intersect with match_vars:", toString(inter1), "\n")
-#    cat("  exact intersect with match_vars+suffix:", toString(inter2), "\n")
-#    cat("  fuzzy matches (startsWith match_vars):", toString(unique(fuzzy_matches)), "\n")
-#    cat("  fuzzy matches (startsWith match_vars+suffix):", toString(unique(fuzzy_with_suffix)), "\n")
-#    out[[nm]] <- list(coef_names = coef_b, exact = c(inter1, inter2), fuzzy = unique(c(fuzzy_matches, fuzzy_with_suffix)))
-#  }
-#  return(out)
-#}
-
-#diag_res <- diagnose_models(model_list, match_vars, suffix = "")
 ```
 
 ## Legis
